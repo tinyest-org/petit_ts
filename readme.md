@@ -57,6 +57,7 @@ with open('res.ts', 'w') as f :
 
 ### Supported types:
 
+- None
 - bool
 - str
 - int
@@ -65,6 +66,10 @@ with open('res.ts', 'w') as f :
 - List[T]
 - List, list
 - Dict, dict
+- @dataclass, generic @dataclass
+- Optional[T]
+- Union[A, B, ...], NamedUnion
+- Literal[values], NamedLiteral with values = Union[int, str]
 
 ### Add support for a custom type
 
