@@ -1,6 +1,6 @@
 import ast
 import inspect
-from typing import Any, List, Literal, Optional, Tuple, Union
+from typing import Optional, Any
 
 import executing
 
@@ -8,17 +8,20 @@ NAME_TOKEN = '__petit_name__'
 
 
 class AstFailure(Exception):
-    pass
+    ...
 
 
-def get_extended_name(item) -> Optional[str]:
+# TODO: make a custom type that reflects the added functionnalities
+ExtendedBasicTypeHint = Any
+
+def get_extended_name(item: ExtendedBasicTypeHint) -> Optional[str]:
     if hasattr(item, NAME_TOKEN):
         return item.__dict__[NAME_TOKEN]
     else:
         return None
 
 
-def set_extended_name(item, name: Optional[str]) -> None:
+def set_extended_name(item: ExtendedBasicTypeHint, name: Optional[str]) -> None:
     if name is not None:
         item.__dict__[NAME_TOKEN] = name
 
@@ -36,7 +39,7 @@ def get_parent_assign(node: ast.AST) -> ast.Assign:
 
 
 def get_variable_name(with_raise: bool = True) -> Optional[str]:
-    # maybe should handle depth, number of f_back
+    # TODO: maybe should handle depth, number of f_back
     frame = inspect.currentframe().f_back.f_back
     node = executing.Source.executing(frame).node
     try:

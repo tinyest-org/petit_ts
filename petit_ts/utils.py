@@ -1,7 +1,5 @@
 import inspect
 import threading
-import typing
-from enum import Enum
 from typing import (Any, Set, Tuple, TypeVar, Union, get_args, get_origin,
                     get_type_hints)
 
@@ -9,7 +7,7 @@ from .const import NoneType, pseudo_classes
 
 
 class SafeCounter:
-    def __init__(self, value=0):
+    def __init__(self, value: int = 0):
         self.value = value
         self.lock = threading.Lock()
 
@@ -37,7 +35,7 @@ def is_mapping(origin, args) -> bool:
     return origin == dict and len(args) == 2
 
 
-def __get_generic_params(cls, l: set):
+def __get_generic_params(cls: type, l: set) -> None:
     if inspect.isclass(cls):
         for type_ in get_type_hints(cls).values():
             if isinstance(type_, TypeVar):
@@ -55,11 +53,14 @@ def __get_generic_params(cls, l: set):
                 __get_generic_params(arg, l)
 
 
-def get_generic_params(cls) -> Set[TypeVar]:
+def get_generic_params(cls: type) -> Set[TypeVar]:
     l = set()
     __get_generic_params(cls, l)
     return l
 
-def is_generic(cls) -> Tuple[bool, Set[TypeVar]]:
+
+def is_generic(cls: type) -> Tuple[bool, Set[TypeVar]]:
+    """Tells if a given class is generic
+    """
     fields = get_generic_params(cls)
     return len(fields) > 0, fields

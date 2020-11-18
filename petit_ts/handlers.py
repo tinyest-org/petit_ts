@@ -1,12 +1,13 @@
-
-from .const import INLINE_TOKEN
 from dataclasses import is_dataclass
 from enum import Enum
+from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints, TYPE_CHECKING
 
-from pydantic import BaseModel
-from .base_handler import BasicHandler, ClassHandler
 from .ast_utils import get_extended_name
-from typing import Any, Dict, Literal, Tuple, Optional, Union, get_type_hints
+from .base_handler import BasicHandler, ClassHandler
+from .const import INLINE_TOKEN
+
+# if TYPE_CHECKING:
+#     from .petit_ts import TSTypeStore
 
 
 class UnionHandler(BasicHandler):
@@ -15,7 +16,8 @@ class UnionHandler(BasicHandler):
         return origin is Union
 
     @staticmethod
-    def build(cls, store, origin, args) -> Tuple[Optional[str], str]:
+    def build(cls: Union[Any], store, origin, args) -> Tuple[Optional[str], str]:
+        # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
             return None, f' | '.join(store.get_repr(arg) for arg in args)
         else:
@@ -25,10 +27,10 @@ class UnionHandler(BasicHandler):
 class LiteralHandler(BasicHandler):
     @staticmethod
     def should_handle(cls, store, origin, args) -> bool:
-        return origin == Literal and len(args) > 0
+        return origin is Literal and len(args) > 0
 
     @staticmethod
-    def build(cls, store, origin, args) -> str:
+    def build(cls: Literal, store, origin, args) -> Tuple[Optional[str], str]:
         name = get_extended_name(cls)
         is_inline = name is None
         s = []
@@ -53,11 +55,11 @@ class EnumHandler(ClassHandler):
         return False
 
     @staticmethod
-    def should_handle(cls, store, origin, args) -> bool:
+    def should_handle(cls: type, store, origin, args) -> bool:
         return issubclass(cls, Enum)
 
     @staticmethod
-    def build(cls, store, origin, args) -> Tuple[Optional[str], str]:
+    def build(cls: Enum, store, origin, args) -> Tuple[Optional[str], str]:
         s = []
         name = cls.__name__
         for i in cls:
@@ -68,7 +70,7 @@ class EnumHandler(ClassHandler):
             else:
                 # TODO: handle error, invalid type
                 pass
-        res = f'export enum {name} {{\n' + '\n'.join(s) + '\n};'
+        res = f'enum {name} {{\n' + '\n'.join(s) + '\n};'
         return name, res
 
 
@@ -78,14 +80,14 @@ class DataclassHandler(ClassHandler):
         return True
 
     @staticmethod
-    def should_handle(cls, store, origin, args) -> bool:
+    def should_handle(cls: type, store, origin, args) -> bool:
         return is_dataclass(cls)
 
     def is_inline(cls) -> bool:
         return cls.__name__.startswith(INLINE_TOKEN)
 
     @staticmethod
-    def build(cls, store, origin, args) -> Tuple[Optional[str], Dict[str, Any]]:
+    def build(cls: type, store, origin, args) -> Tuple[Optional[str], Dict[str, Any]]:
         name = None if cls.__name__.startswith(INLINE_TOKEN) else cls.__name__
         fields = get_type_hints(cls)
         return name, fields

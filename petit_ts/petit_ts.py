@@ -3,16 +3,16 @@ from __future__ import annotations
 import inspect
 from dataclasses import is_dataclass, make_dataclass
 from enum import Enum
-from typing import (Any, Dict, List, Optional, Set, Tuple, TypeVar, get_args,
-                    get_origin, get_type_hints)
+from typing import (Any, Dict, List, Optional, Set, TypeVar, get_args,
+                    get_origin)
 
-from .base_handler import BaseHandler, BasicHandler, ClassHandler
 from pydantic import BaseModel
 
-from .const import INLINE_TOKEN, NoneType, default_types, pseudo_classes
-from .handlers import DataclassHandler, EnumHandler, LiteralHandler, UnionHandler
-from .utils import (SafeCounter, is_generic,
-                    is_array, is_mapping, is_optional)
+from .base_handler import BasicHandler, ClassHandler
+from .const import INLINE_TOKEN, DEFAULT_TYPES, pseudo_classes
+from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
+                       UnionHandler)
+from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 
 # should handle string type
 
@@ -77,7 +77,7 @@ class TSTypeStore:
 
     def __init_default_type(self):
         self.types = {
-            key: TypeStruct(value, self) for key, value in default_types.items()
+            key: TypeStruct(value, self) for key, value in DEFAULT_TYPES.items()
         }
 
     def add_type(self, cls: pseudo_classes) -> None:

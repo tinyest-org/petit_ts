@@ -25,6 +25,7 @@ def NamedUnion(*args: type) -> Union[Any]:
 
     note: the typing on this function is broken
     """
+    # TODO: add current import to the eval scope
     # normal litteral but wrapped
     item = eval('Union[{}]'.format(", ".join(arg.__name__ for arg in args)))
     # gets the name of the variable which will be assigned
