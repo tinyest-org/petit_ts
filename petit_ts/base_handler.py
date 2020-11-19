@@ -1,19 +1,19 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Tuple, Optional, Union, Any, Dict, TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from .petit_ts import TSTypeStore
 
 
 class BaseHandler(ABC):
-    
+
     @staticmethod
     @abstractmethod
     def should_handle(cls: Any, store: TSTypeStore,
                       origin: Optional[type], args: List[Any]) -> bool: ...
 
-    
     @staticmethod
     @abstractmethod
     def build(cls: Any, store: TSTypeStore, origin: Optional[type],

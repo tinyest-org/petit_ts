@@ -1,5 +1,5 @@
 from .ast_utils import get_extended_name, get_variable_name, set_extended_name
-from typing import Any, Union, Literal, TypeVar
+from typing import TypeVar
 
 
 T = TypeVar('T')

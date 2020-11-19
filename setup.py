@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 with open('readme.md', 'r') as f :
     readme_content = f.read()

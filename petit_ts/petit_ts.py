@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import is_dataclass, make_dataclass
-from enum import Enum
+from dataclasses import make_dataclass
 from typing import (Any, Dict, List, Optional, Set, TypeVar, get_args,
                     get_origin)
 
-from pydantic import BaseModel
-
 from .base_handler import BasicHandler, ClassHandler
-from .const import INLINE_TOKEN, DEFAULT_TYPES, pseudo_classes
+from .const import DEFAULT_TYPES, INLINE_TOKEN, pseudo_classes
 from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
                        UnionHandler)
 from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
@@ -83,11 +80,7 @@ class TSTypeStore:
     def add_type(self, cls: pseudo_classes) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
         """
-        if str(cls) in self.types:  # already built
-            return
-        elif inspect.isclass(cls) and not any((issubclass(cls, BaseModel), issubclass(cls, Enum), is_dataclass(cls))):
-            print('invalid class', cls, type(cls))
-        else:
+        if str(cls) not in self.types:  # check if already built
             self.types[str(cls)] = TypeStruct(cls, self)
 
     def render_types(self) -> None:
@@ -213,7 +206,9 @@ class TypeStruct:
                     #  mapping, you can still not be inline
                     if name is not None:
                         self.name = name
-                    break
+                    return
+            # TODO: better handle error
+            print(f'Type not Supported {self.value}')
         else:
             for handler in self.store.basic_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
@@ -224,6 +219,7 @@ class TypeStruct:
                     if name is not None:
                         self.name = name
                     return
+
 
             if isinstance(self.value, dict):
                 s = []
@@ -245,6 +241,8 @@ class TypeStruct:
             # handle generic classes
             elif len(args) > 0:
                 self.__repr = f"{self.store.get_repr(origin)}<{', '.join(self.store.get_repr(i) for i in args)}>"
+            else:
+                print(f'No handler found for this type {self.value}')
 
     def get_repr(self) -> str:
         """returns the default representation for the type

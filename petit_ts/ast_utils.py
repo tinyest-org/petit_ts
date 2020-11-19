@@ -1,6 +1,6 @@
 import ast
 import inspect
-from typing import Optional, Any
+from typing import Any, Optional
 
 import executing
 
@@ -13,6 +13,7 @@ class AstFailure(Exception):
 
 # TODO: make a custom type that reflects the added functionnalities
 ExtendedBasicTypeHint = Any
+
 
 def get_extended_name(item: ExtendedBasicTypeHint) -> Optional[str]:
     if hasattr(item, NAME_TOKEN):

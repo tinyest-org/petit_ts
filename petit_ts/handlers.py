@@ -1,13 +1,10 @@
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints, TYPE_CHECKING
+from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints
 
 from .ast_utils import get_extended_name
 from .base_handler import BasicHandler, ClassHandler
 from .const import INLINE_TOKEN
-
-# if TYPE_CHECKING:
-#     from .petit_ts import TSTypeStore
 
 
 class UnionHandler(BasicHandler):
