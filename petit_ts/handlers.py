@@ -21,7 +21,7 @@ class UnionHandler(BasicHandler):
         if (name := get_extended_name(cls)) is None:
             return None, f' | '.join(store.get_repr(arg) for arg in args)
         else:
-            return name, f'type {name} = '+' | '.join(store.get_repr(arg) for arg in args)
+            return name, f'type {name} = '+' | '.join(store.get_repr(arg) for arg in args) + ';'
 
 
 class LiteralHandler(BasicHandler):
@@ -36,7 +36,7 @@ class LiteralHandler(BasicHandler):
         s = []
         for arg in args:
             if isinstance(arg, int):
-                s.append(arg)
+                s.append(f'{arg}')
             elif isinstance(arg, str):
                 s.append(f'"{arg}"')
             else:
@@ -83,7 +83,7 @@ class DataclassHandler(ClassHandler):
     def should_handle(cls: type, store, origin, args) -> bool:
         return is_dataclass(cls)
 
-    def is_inline(cls) -> bool:
+    def is_inline(cls: type) -> bool:
         return cls.__name__.startswith(INLINE_TOKEN)
 
     @staticmethod
