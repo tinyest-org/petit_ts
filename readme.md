@@ -68,8 +68,8 @@ with open('res.ts', 'w') as f :
 - Dict, dict
 - @dataclass, generic @dataclass
 - Optional[T]
-- Union[A, B, ...], NamedUnion
-- Literal[values], NamedLiteral with values = Union[int, str]
+- Union[A, B, ...], Named(Union[A, B, ...])
+- Literal[values], Named(Literal[1, 2, '3']) with values = Union[int, str]
 
 ### Add support for a custom type
 
@@ -111,3 +111,6 @@ For the BasicHandler :
 
 - build
 - should_handle
+
+
+If you have any problem, don't hesitate to open an issue !
