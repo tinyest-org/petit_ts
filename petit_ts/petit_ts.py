@@ -11,9 +11,6 @@ from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
                        UnionHandler)
 from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 
-# should handle string type
-
-
 # we use this to create different names for the inlined types
 """Be careful with this, it's a global for the library
 """
@@ -118,7 +115,7 @@ class TSTypeStore:
         """
         self.class_handlers.add(handler)
 
-    def add_cast(self, type1, type2) -> None:
+    def add_basic_cast(self, type1, type2) -> None:
         """For example if you want to cast datetime.datetime directly as str
 
         will only work for basic types | flat types
@@ -219,7 +216,6 @@ class TypeStruct:
                     if name is not None:
                         self.name = name
                     return
-
 
             if isinstance(self.value, dict):
                 s = []

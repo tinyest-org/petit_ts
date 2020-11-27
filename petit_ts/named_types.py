@@ -1,9 +1,8 @@
-from .ast_utils import get_extended_name, get_variable_name, set_extended_name
 from typing import TypeVar
 
+from .ast_utils import get_extended_name, get_variable_name, set_extended_name
 
 T = TypeVar('T')
-# TODO: maybe setup a nice wrapper to be able to name any type
 
 
 def Named(item: T) -> T:

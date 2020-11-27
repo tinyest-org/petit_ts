@@ -1,5 +1,4 @@
 from typing import Any, List, Union
-from pydantic import BaseModel
 
 INLINE_TOKEN = "__inline__"
 
@@ -20,4 +19,4 @@ DEFAULT_TYPES = {
     str(List[str]): "string[]",
 }
 
-pseudo_classes = Union[dict, None, Any, BaseModel]
+pseudo_classes = Union[dict, None, Any]
