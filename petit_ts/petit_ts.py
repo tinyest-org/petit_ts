@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import make_dataclass
+from petit_ts.ast_utils import get_extended_name
 from typing import (Any, Dict, List, Optional, Set, TypeVar, Union, get_args,
                     get_origin)
 from typing import Type as RealType
@@ -81,7 +82,7 @@ class TSTypeStore:
             key: TypeStruct(value, self, default=True) for key, value in DEFAULT_TYPES.items()
         }
 
-    def _add_type(self, cls: pseudo_classes) -> None:
+    def add_type(self, cls: pseudo_classes) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
         """
         if str(cls) not in self.types:  # check if already built
@@ -102,7 +103,7 @@ class TSTypeStore:
             return cls.__name__
 
         if store_hash_function(cls) not in self.types:
-            self._add_type(cls)
+            self.add_type(cls)
 
         return self.types[store_hash_function(cls)].get_repr()
 
@@ -111,7 +112,7 @@ class TSTypeStore:
             return cls.__name__
 
         if store_hash_function(cls) not in self.types:
-            self._add_type(cls)
+            self.add_type(cls)
 
         return self.types[store_hash_function(cls)].get_full_repr()
 
@@ -141,7 +142,7 @@ class TSTypeStore:
 
         will only work for basic types | flat types
         """
-        self.types[str(type1)] = self.types[str(type2)]
+        self.types[store_hash_function(type1)] = self.types[store_hash_function(type2)]
 
 
 class TypeStruct:
@@ -166,10 +167,16 @@ class TypeStruct:
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
             if optional:
-                self.store._add_type(type_)
-                s.append(
-                    f'\t{key}?: {self.store.get_repr(args[0])}'
-                )
+                if len(args) == 2:
+                    self.store.add_type(type_)
+                    s.append(
+                        f'\t{key}?: {self.store.get_repr(args[0])};'
+                    )
+                # means that we have an Optional[Union[...]]
+                else:
+                    s.append(
+                        f'\t{key}?: {self.store.get_repr(type_)};'
+                    )
             else:
                 s.append(f'\t{key}: {self.store.get_repr(type_)}')
         self.__repr = '{ ' + ', '.join(s) + ' }'
@@ -178,17 +185,17 @@ class TypeStruct:
         self.name = name
         is_generic_, names = is_generic(self.value)
         s: List[str] = []
-        if not is_generic_:
-            s.append(f'type {self.name}  = {{')
-        else:
+        if is_generic_:
             s.append(
                 f'type {self.name}<{", ".join(self.store.get_repr(n) for n in names)}> = {{'
             )
+        else:
+            s.append(f'type {self.name}  = {{')
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
             if optional:
                 if len(args) == 2:
-                    self.store._add_type(type_)
+                    self.store.add_type(type_)
                     s.append(
                         f'\t{key}?: {self.store.get_repr(args[0])};'
                     )

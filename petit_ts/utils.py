@@ -26,7 +26,7 @@ class SafeCounter:
 def is_optional(cls: pseudo_classes) -> Tuple[bool, Tuple[Any]]:
     args = get_args(cls)
     origin = get_origin(cls)
-    return origin is Union or origin is NamedUnion and NoneType in args, args
+    return origin is (Union, NamedUnion) and NoneType in args, args
 
 
 def is_array(origin, args) -> bool:
