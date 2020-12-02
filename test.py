@@ -1,10 +1,12 @@
-from typing import Literal, Union
-from petit_ts import TSTypeStore, Named
+from __future__ import annotations
 from dataclasses import dataclass
+from petit_ts.named_types import NamedUnion, NamedLiteral
+from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints
 
-from typing import Tuple, Optional, Dict, Any, get_type_hints
-from petit_ts import ClassHandler
+
 from pydantic import BaseModel
+
+from petit_ts import ClassHandler, Named, TSTypeStore
 
 
 class BaseModelHandler(ClassHandler):
@@ -23,8 +25,14 @@ class BaseModelHandler(ClassHandler):
         return name, fields
 
 
+B = Named(Optional[Literal[1, 2, '3']])
+
+
+
 class L(BaseModel):
     p: str
+    j: Optional[Union[str, int, None]]
+    l: A
 
 
 @dataclass
@@ -32,13 +40,11 @@ class Deb:
     a: int
     l: L
 
-
-# print(globals()['Deb'])
-B = Named(Literal[1, 2, '3'])
-A = Named(Union[int, str, Deb, B])
+A = Named(Optional[Union[int, str, Deb, B]])
 
 
 store = TSTypeStore()
 store.add_class_handler(BaseModelHandler)
 print(store.get_repr(A))
+print(store.get_repr(B))
 print(store.get_all_not_inlined())

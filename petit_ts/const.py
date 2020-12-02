@@ -1,12 +1,24 @@
-from typing import Any, List, Union
+from typing import Any, Final, List, Union
 
-INLINE_TOKEN = "__inline__"
+INLINE_TOKEN: Final = "__inline__"
 
 NoneType = type(None)
+
+
+class undefined:
+    ...
+
+
+class null:
+    ...
+
 
 DEFAULT_TYPES = {
     str(bool): "boolean",
     str(None): "void",
+    str(NoneType): "undefined",
+    str(null): "null",
+    str(undefined): "undefined",
     str(Any): "any",
     str(int): "number /*int*/",
     str(float): "number /*float*/",

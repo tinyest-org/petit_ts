@@ -1,4 +1,5 @@
 import inspect
+from petit_ts.named_types import NamedUnion
 import threading
 from typing import (Any, Set, Tuple, TypeVar, Union, get_args, get_origin,
                     get_type_hints)
@@ -24,7 +25,8 @@ class SafeCounter:
 
 def is_optional(cls: pseudo_classes) -> Tuple[bool, Tuple[Any]]:
     args = get_args(cls)
-    return get_origin(cls) == Union and NoneType in args, args
+    origin = get_origin(cls)
+    return origin is Union or origin is NamedUnion and NoneType in args, args
 
 
 def is_array(origin, args) -> bool:

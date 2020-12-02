@@ -125,3 +125,13 @@ For the BasicHandler :
 
 
 If you have any problem, don't hesitate to open an issue on github !
+
+
+## Next steps :
+
+- Add support :
+    - Tuples[...]
+    - NamedTuple[...]
+
+- Handle abstract types
+- Choose between interface and type

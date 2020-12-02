@@ -1,22 +1,23 @@
 from dataclasses import is_dataclass
 from enum import Enum
+from petit_ts.named_types import NamedLiteral, NamedUnion
 from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints
 
 from .ast_utils import get_extended_name
 from .base_handler import BasicHandler, ClassHandler
-from .const import INLINE_TOKEN
+from .const import INLINE_TOKEN, NoneType
 
 
 class UnionHandler(BasicHandler):
     @staticmethod
     def should_handle(cls, store, origin, args) -> bool:
-        return origin is Union
+        return origin is Union or origin is NamedUnion
 
     @staticmethod
     def build(cls: Union[Any], store, origin, args) -> Tuple[Optional[str], str]:
         # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
-            return None, f' | '.join(store.get_repr(arg) for arg in args)
+            return None, f' | '.join(store.get_repr(arg) for arg in args if arg is not NoneType)
         else:
             return name, f'type {name} = '+' | '.join(store.get_repr(arg) for arg in args) + ';'
 
@@ -24,7 +25,7 @@ class UnionHandler(BasicHandler):
 class LiteralHandler(BasicHandler):
     @staticmethod
     def should_handle(cls, store, origin, args) -> bool:
-        return origin is Literal and len(args) > 0
+        return origin is Literal or origin is NamedLiteral
 
     @staticmethod
     def build(cls: Literal, store, origin, args) -> Tuple[Optional[str], str]:
@@ -46,7 +47,7 @@ class LiteralHandler(BasicHandler):
             return name, f'type {name} = {res};'
 
 
-class EnumHandler(ClassHandler):
+class EnumHandler(ClassHandler[Enum]):
     @staticmethod
     def is_mapping() -> bool:
         return False

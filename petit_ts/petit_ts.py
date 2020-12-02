@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import make_dataclass
-from typing import (Any, Dict, List, Optional, Set, TypeVar, get_args,
+from typing import (Any, Dict, List, Optional, Set, TypeVar, Union, get_args,
                     get_origin)
+from typing import Type as RealType
 
 from .base_handler import BasicHandler, ClassHandler
 from .const import DEFAULT_TYPES, INLINE_TOKEN, pseudo_classes
@@ -15,6 +16,11 @@ from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 """Be careful with this, it's a global for the library
 """
 global_counter = SafeCounter()
+
+BASIC_TYPES = Union[int, str, float, bool, None]
+
+
+store_hash_function = str
 
 
 def Type(**kwargs) -> type:
@@ -59,11 +65,11 @@ class TSTypeStore:
     def __init__(self):
         self.types: Dict[str, TypeStruct] = {}
         # we put them here, because they are less standard than the other
-        self.basic_handlers: Set[BasicHandler] = {
+        self.basic_handlers: Set[RealType[BasicHandler]] = {
             UnionHandler,
             LiteralHandler,
         }
-        self.class_handlers: Set[ClassHandler] = {
+        self.class_handlers: Set[RealType[ClassHandler]] = {
             EnumHandler,
             DataclassHandler,
         }
@@ -71,10 +77,10 @@ class TSTypeStore:
 
     def __init_default_type(self):
         self.types = {
-            key: TypeStruct(value, self) for key, value in DEFAULT_TYPES.items()
+            key: TypeStruct(value, self, default=True) for key, value in DEFAULT_TYPES.items()
         }
 
-    def add_type(self, cls: pseudo_classes) -> None:
+    def _add_type(self, cls: pseudo_classes) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
         """
         if str(cls) not in self.types:  # check if already built
@@ -90,32 +96,46 @@ class TSTypeStore:
     def get_repr(self, cls: pseudo_classes) -> str:
         """Returns the typescript representation of a given type
         """
+        # handling generics
         if isinstance(cls, TypeVar):
             return cls.__name__
-        if str(cls) not in self.types:
-            self.add_type(cls)
-        return self.types[str(cls)].get_repr()
+
+        if store_hash_function(cls) not in self.types:
+            self._add_type(cls)
+
+        return self.types[store_hash_function(cls)].get_repr()
+
+    def get_full_repr(self, cls:pseudo_classes) -> str:
+        if isinstance(cls, TypeVar):
+            return cls.__name__
+
+        if store_hash_function(cls) not in self.types:
+            self._add_type(cls)
+
+        return self.types[store_hash_function(cls)].get_full_repr()
 
     def get_all_not_inlined(self) -> str:
         """return all the function where a body has to be added to the file
         """
+        # ensure rendered
+        self.render_types()
         return '\n'.join(
             i.get_full_repr() for i in self.types.values() if i.name is not None
         )
 
-    def add_basic_handler(self, handler: BasicHandler) -> None:
+    def add_basic_handler(self, handler: RealType[BasicHandler]) -> None:
         """Adds a `BasicHandler` to the store, in order to add support for a custom class
 
         if you want to add the support for datetime for example, it's here
         """
         self.basic_handlers.add(handler)
 
-    def add_class_handler(self, handler: ClassHandler) -> None:
+    def add_class_handler(self, handler: RealType[ClassHandler]) -> None:
         """Adds a `ClassHandler` to the store, in order to add support for a custom class
         """
         self.class_handlers.add(handler)
 
-    def add_basic_cast(self, type1, type2) -> None:
+    def add_basic_cast(self, type1: Any, type2: BASIC_TYPES) -> None:
         """For example if you want to cast datetime.datetime directly as str
 
         will only work for basic types | flat types
@@ -127,18 +147,17 @@ class TypeStruct:
     """Internal object used to store the data in order to build, it's typescript representation
     """
 
-    def __init__(self, value: pseudo_classes, store: TSTypeStore):
-        self.rendered = False
-        self.__repr = f"any /* {value} */"
-        # should make is cleaner
-        try:
-            if isinstance(value, str):
-                self.rendered = True
-                self.__repr = value
-        except:
-            print('error', value)
-        self.value = value
-        self.store = store
+    def __init__(self, value: pseudo_classes, store: TSTypeStore, *, default: bool = False):
+        self.rendered: bool = False
+        self.__repr: str = f"any /* {value} */"
+        
+        if default:
+            self.rendered = True
+            self.__repr = value
+        
+        self.value: str = value
+        self.rendering: bool = default
+        self.store: TSTypeStore = store
         self.name: Optional[str] = None
 
     def _make_inline(self, fields: Dict[str, Any]):
@@ -146,6 +165,7 @@ class TypeStruct:
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
             if optional:
+                self.store._add_type(type_)
                 s.append(
                     f'\t{key}?: {self.store.get_repr(args[0])}'
                 )
@@ -167,12 +187,15 @@ class TypeStruct:
             optional, args = is_optional(type_)
             if optional:
                 if len(args) == 2:
+                    self.store._add_type(type_)
                     s.append(
                         f'\t{key}?: {self.store.get_repr(args[0])};'
                     )
+                # means that we have an Optional[Union[...]]
                 else:
-                    # TODO: should log
-                    print('error')
+                    s.append(
+                        f'\t{key}?: {self.store.get_repr(type_)};'
+                    )
             else:
                 s.append(f'\t{key}: {self.store.get_repr(type_)};')
         s.append('};')
@@ -180,9 +203,9 @@ class TypeStruct:
 
     def _render(self) -> None:
         """Here is the actual magic :) """
-        if self.rendered:
+        if self.rendering:
             return
-        self.rendered = True
+        self.rendering = True
 
         origin = get_origin(self.value)
         args = get_args(self.value)
@@ -203,6 +226,8 @@ class TypeStruct:
                     #  mapping, you can still not be inline
                     if name is not None:
                         self.name = name
+                    self.rendered = True
+                    self.rendering = False
                     return
             # TODO: better handle error
             print(f'Type not Supported {self.value}')
@@ -215,6 +240,8 @@ class TypeStruct:
                     self.__repr = result
                     if name is not None:
                         self.name = name
+                    self.rendered = True
+                    self.rendering = False
                     return
 
             if isinstance(self.value, dict):
@@ -223,22 +250,28 @@ class TypeStruct:
                     # should check optional
                     s.append(f'{key}: {self.store.get_repr(value)}')
                 self.__repr = '{ '+', '.join(s)+' }'
-
+                self.rendered = True
+                self.rendering = False
             elif is_array(origin, args):
                 type_ = args[0]
                 # can't have optional here
                 self.__repr = f'{self.store.get_repr(type_)}[]'
-
+                self.rendered = True
+                self.rendering = False
             elif is_mapping(origin, args):
                 key_type, value_type = args
                 # can't have optional here
                 self.__repr = f'{{ [key: {self.store.get_repr(key_type)}]: {self.store.get_repr(value_type)} }}'
-
+                self.rendered = True
+                self.rendering = False
             # handle generic classes
             elif len(args) > 0:
                 self.__repr = f"{self.store.get_repr(origin)}<{', '.join(self.store.get_repr(i) for i in args)}>"
+                self.rendered = True
+                self.rendering = False
             else:
                 print(f'No handler found for this type {self.value}')
+                self.rendering = False
 
     def get_repr(self) -> str:
         """returns the default representation for the type
@@ -256,5 +289,7 @@ class TypeStruct:
     def get_full_repr(self) -> str:
         """Used to get the full body of not inlined type
         """
+        if not self.rendered:
+            self._render()
         if self.name != '':
             return self.__repr
