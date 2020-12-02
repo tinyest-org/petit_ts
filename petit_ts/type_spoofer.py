@@ -42,6 +42,6 @@ def spoofer(spoofed: List[Tuple[Any, Any]]) -> Callable[[], None]:
 
 """Will spooef NamedUnion as Union for other framewokr to not have errors
 """
-patch_get_origin = spoofer([
+patch_get_origin_for_Union = spoofer([
     (NamedUnion, Union),
 ])

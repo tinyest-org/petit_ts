@@ -124,13 +124,38 @@ For the BasicHandler :
 - should_handle
 
 
+## Support for Named types:
+
+if you need a type to be exported with it's definition name, you can use the `Named`function as such :
+
+```python
+P = Named(Union[str, int])
+# will be exported to type P = string | number;
+```
+
+You can name any of :
+
+- Optional
+- Union
+- Literal
+- Tuple
+
 If you have any problem, don't hesitate to open an issue on github !
 
+
+## Support for type spoofing:
+
+
+As you'll see with `pydantic.BaseModel`, NamedUnion is not supported by default because of the way the `Union`
+is defined in the `typing` lib.
+
+In order to support this, `petit_ts` provides the `patch_get_origin_for_Union`, it will make other libraries
+believe `NamedUnion` is `Union`.
+So you have to call `patch_get_origin_for_Union()` before importing pydantic.
 
 ## Next steps :
 
 - Add support :
-    - Tuples[...]
     - NamedTuple[...]
 
 - Handle abstract types

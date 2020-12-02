@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints, get_origin, get_args
 
-from petit_ts import ClassHandler, Named, TSTypeStore, patch_get_origin
+from petit_ts import ClassHandler, Named, TSTypeStore, patch_get_origin_for_Union
 # this makes us able, to use NamedUnion as Union for pydantic, without it we can't use 
 # Named(Union[...])
-patch_get_origin()
+patch_get_origin_for_Union()
 
 from pydantic import BaseModel
 
