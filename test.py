@@ -27,12 +27,13 @@ class BaseModelHandler(ClassHandler):
 
 B = Named(Optional[Literal[1, 2, '3']])
 
-
-
+C = Named(Tuple[int, str])
+D = Named(Tuple[C, Tuple[str, str]])
 class L(BaseModel):
     p: str
     j: Optional[Union[str, int, None]]
     l: A
+    op: C
 
 
 @dataclass
@@ -40,11 +41,12 @@ class Deb:
     a: int
     l: L
 
-A = Named(Optional[Union[int, str, Deb, B]])
+A = Named(Optional[Union[int, str, Deb, B, C]])
 
 
 store = TSTypeStore()
 store.add_class_handler(BaseModelHandler)
 print(store.get_repr(A))
 print(store.get_repr(B))
+print(store.get_full_repr(D))
 print(store.get_all_not_inlined())

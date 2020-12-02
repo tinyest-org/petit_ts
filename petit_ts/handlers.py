@@ -1,12 +1,15 @@
+from __future__ import annotations
 from dataclasses import is_dataclass
 from enum import Enum
 from petit_ts.named_types import NamedLiteral, NamedUnion
-from typing import Any, Dict, Literal, Optional, Tuple, Union, get_type_hints
+from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, Tuple, Union, get_type_hints
 
 from .ast_utils import get_extended_name
 from .base_handler import BasicHandler, ClassHandler
 from .const import INLINE_TOKEN, NoneType
 
+if TYPE_CHECKING:
+    from .petit_ts import TSTypeStore
 
 class UnionHandler(BasicHandler):
     @staticmethod
@@ -89,3 +92,16 @@ class DataclassHandler(ClassHandler):
         name = None if cls.__name__.startswith(INLINE_TOKEN) else cls.__name__
         fields = get_type_hints(cls)
         return name, fields
+
+
+class TupleHandler(BasicHandler):
+    @staticmethod
+    def should_handle(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        return origin is tuple
+
+    def build(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any]) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
+        # Union[Any] because Union is like Never
+        if (name := get_extended_name(cls)) is None:
+            return None, '[' + f', '.join(store.get_repr(arg) for arg in args if arg is not NoneType) + ']'
+        else:
+            return name, f'type {name} = ['+' , '.join(store.get_repr(arg) for arg in args) + '];'

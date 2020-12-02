@@ -9,7 +9,7 @@ from typing import Type as RealType
 from .base_handler import BasicHandler, ClassHandler
 from .const import DEFAULT_TYPES, INLINE_TOKEN, pseudo_classes
 from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
-                       UnionHandler)
+                       UnionHandler, TupleHandler)
 from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 
 # we use this to create different names for the inlined types
@@ -68,6 +68,7 @@ class TSTypeStore:
         self.basic_handlers: Set[RealType[BasicHandler]] = {
             UnionHandler,
             LiteralHandler,
+            TupleHandler,
         }
         self.class_handlers: Set[RealType[ClassHandler]] = {
             EnumHandler,
