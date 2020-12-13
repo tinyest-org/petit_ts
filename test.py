@@ -48,7 +48,7 @@ class L(BaseModel):
 class Deb:
     a: int
     l: L
-    dezo: Deb
+    dezo: Optional[Deb]
     pp: D
     m: F
     e: Union[F, G]

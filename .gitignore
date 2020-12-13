@@ -3,3 +3,5 @@
 .vscode
 *pydantic_all
 *pydantic*
+.coverage
+petit_ts/test
