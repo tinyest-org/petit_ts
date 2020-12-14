@@ -70,14 +70,13 @@ with open('res.ts', 'w') as f :
 - str
 - int
 - float
-- Dict[K, V]
-- List[T]
-- List, list
-- Dict, dict
+- Dict[K, V], Dict, dict
+- List[T], List, list
 - @dataclass, generic @dataclass
-- Optional[T]
+- Optional[T], Named(Optional[T])
 - Union[A, B, ...], Named(Union[A, B, ...])
 - Literal[values], Named(Literal[1, 2, '3']) with values = Union[int, str]
+- Tuple[A, B, ...], Named(Tuple[A, B, ...])
 
 ### Add support for a custom type
 
@@ -155,8 +154,6 @@ So you have to call `patch_get_origin_for_Union()` before importing pydantic.
 
 ## Next steps :
 
-- Add support :
-    - NamedTuple[...]
-
+- Handle multiple type of collection
 - Handle abstract types
 - Choose between interface and type
