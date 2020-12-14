@@ -58,7 +58,7 @@ D = Named(Optional[Tuple[C, Tuple[str, str]]])
 A = Named(Optional[Union[int, str, Deb, B, C]])
 
 
-store = TSTypeStore()
+store = TSTypeStore(export_all=True)
 store.add_class_handler(BaseModelHandler)
 store.get_repr(A)
 print(store.get_repr(B))

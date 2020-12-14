@@ -63,7 +63,8 @@ class TSTypeStore:
     - Then you can use store.get_repr() for your classes 
     """
 
-    def __init__(self):
+    def __init__(self, export_all: bool = False):
+        self.export_all = export_all
         self.types: Dict[str, TypeStruct] = {}
         # we put them here, because they are less standard than the other
         self.basic_handlers: Set[RealType[BasicHandler]] = {
@@ -79,14 +80,15 @@ class TSTypeStore:
 
     def __init_default_type(self):
         self.types = {
-            key: TypeStruct(value, self, default=True) for key, value in DEFAULT_TYPES.items()
+            key: TypeStruct(value, self, False, default=True) for key, value in DEFAULT_TYPES.items()
         }
 
-    def add_type(self, cls: pseudo_classes) -> None:
+    def add_type(self, cls: pseudo_classes, exported: bool = False) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
         """
         if str(cls) not in self.types:  # check if already built
-            self.types[str(cls)] = TypeStruct(cls, self)
+            self.types[str(cls)] = TypeStruct(
+                cls, self, self.export_all or exported)
 
     def render_types(self) -> None:
         """Use this to render actual store, not actually required, 
@@ -95,7 +97,7 @@ class TSTypeStore:
         for type_ in list(self.types.values()):
             type_._render()
 
-    def get_repr(self, cls: pseudo_classes) -> str:
+    def get_repr(self, cls: pseudo_classes, exported: bool=False) -> str:
         """Returns the typescript representation of a given type
         """
         # handling generics
@@ -103,11 +105,11 @@ class TSTypeStore:
             return cls.__name__
 
         if store_hash_function(cls) not in self.types:
-            self.add_type(cls)
+            self.add_type(cls, exported)
 
         return self.types[store_hash_function(cls)].get_repr()
 
-    def get_full_repr(self, cls:pseudo_classes) -> str:
+    def get_full_repr(self, cls: pseudo_classes) -> str:
         if isinstance(cls, TypeVar):
             return cls.__name__
 
@@ -142,21 +144,22 @@ class TSTypeStore:
 
         will only work for basic types | flat types
         """
-        self.types[store_hash_function(type1)] = self.types[store_hash_function(type2)]
+        self.types[store_hash_function(
+            type1)] = self.types[store_hash_function(type2)]
 
 
 class TypeStruct:
     """Internal object used to store the data in order to build, it's typescript representation
     """
 
-    def __init__(self, value: pseudo_classes, store: TSTypeStore, *, default: bool = False):
+    def __init__(self, value: pseudo_classes, store: TSTypeStore, exported: bool, *, default: bool = False):
         self.rendered: bool = False
         self.__repr: str = f"any /* {value} */"
-        
+
         if default:
             self.rendered = True
             self.__repr = value
-        
+        self.exported = exported
         self.value: str = value
         self.rendering: bool = default
         self.store: TSTypeStore = store
@@ -300,4 +303,6 @@ class TypeStruct:
         if not self.rendered:
             self._render()
         if self.name != '':
+            if self.exported:
+                return 'export ' + self.__repr
             return self.__repr
