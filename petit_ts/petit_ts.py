@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import make_dataclass
-from petit_ts.ast_utils import get_extended_name
-from typing import (Any, Dict, List, Optional, Set, TypeVar, Union, get_args,
-                    get_origin)
+from typing import Any, Dict, List, Optional, Set
 from typing import Type as RealType
+from typing import TypeVar, Union, get_args, get_origin
+
+from petit_ts.exceptions import MissingHandler
+from petit_ts.named_types import get_extended_name
 
 from .base_handler import BasicHandler, ClassHandler
 from .const import DEFAULT_TYPES, INLINE_TOKEN, pseudo_classes
 from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
-                       UnionHandler, TupleHandler)
+                       TupleHandler, UnionHandler)
 from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 
 # we use this to create different names for the inlined types
@@ -21,7 +23,11 @@ global_counter = SafeCounter()
 BASIC_TYPES = Union[int, str, float, bool, None]
 
 
-store_hash_function = str
+def store_hash_function(cls: Any) -> str:
+    base_name = str(cls)
+    if (extended_name := get_extended_name(cls)) is not None:
+        base_name = f'{extended_name}_{base_name}'
+    return base_name
 
 
 def Type(**kwargs) -> type:
@@ -63,8 +69,9 @@ class TSTypeStore:
     - Then you can use store.get_repr() for your classes 
     """
 
-    def __init__(self, export_all: bool = False):
+    def __init__(self, export_all: bool = False, raise_on_error: bool = False):
         self.export_all = export_all
+        self.raise_on_error = raise_on_error
         self.types: Dict[str, TypeStruct] = {}
         # we put them here, because they are less standard than the other
         self.basic_handlers: Set[RealType[BasicHandler]] = {
@@ -83,12 +90,17 @@ class TSTypeStore:
             key: TypeStruct(value, self, False, default=True) for key, value in DEFAULT_TYPES.items()
         }
 
-    def add_type(self, cls: pseudo_classes, exported: bool = False) -> None:
+    def add_type(self, cls: pseudo_classes, exported: bool = False, is_mapping_key: bool = False) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
         """
-        if str(cls) not in self.types:  # check if already built
-            self.types[str(cls)] = TypeStruct(
-                cls, self, self.export_all or exported)
+        if store_hash_function(cls) not in self.types:  # check if already built
+            self.types[store_hash_function(cls)] = TypeStruct(
+                cls,
+                self,
+                self.export_all or exported,
+                is_mapping_key=is_mapping_key,
+                raise_on_error=self.raise_on_error,
+            )
 
     def render_types(self) -> None:
         """Use this to render actual store, not actually required, 
@@ -97,7 +109,7 @@ class TSTypeStore:
         for type_ in list(self.types.values()):
             type_._render()
 
-    def get_repr(self, cls: pseudo_classes, exported: bool=False) -> str:
+    def get_repr(self, cls: pseudo_classes, exported: bool = False, is_mapping_key: bool = False) -> str:
         """Returns the typescript representation of a given type
         """
         # handling generics
@@ -105,7 +117,7 @@ class TSTypeStore:
             return cls.__name__
 
         if store_hash_function(cls) not in self.types:
-            self.add_type(cls, exported)
+            self.add_type(cls, exported, is_mapping_key)
 
         return self.types[store_hash_function(cls)].get_repr()
 
@@ -152,17 +164,21 @@ class TypeStruct:
     """Internal object used to store the data in order to build, it's typescript representation
     """
 
-    def __init__(self, value: pseudo_classes, store: TSTypeStore, exported: bool, *, default: bool = False):
+    def __init__(self, value: pseudo_classes, store: TSTypeStore,
+                 exported: bool, *, default: bool = False,
+                 is_mapping_key: bool = False, raise_on_error: bool = False):
         self.rendered: bool = False
+        self.raise_on_error: bool = raise_on_error
         self.__repr: str = f"any /* {value} */"
 
         if default:
             self.rendered = True
             self.__repr = value
-        self.exported = exported
+        self.exported: bool = exported
         self.value: str = value
         self.rendering: bool = default
         self.store: TSTypeStore = store
+        self.is_mapping_key = is_mapping_key
         self.name: Optional[str] = None
 
     def _make_inline(self, fields: Dict[str, Any]):
@@ -173,15 +189,16 @@ class TypeStruct:
                 if len(args) == 2:
                     self.store.add_type(type_)
                     s.append(
-                        f'\t{key}?: {self.store.get_repr(args[0])};'
+                        f'\t{key}?: {self.store.get_repr(args[0], is_mapping_key=True)}'
                     )
                 # means that we have an Optional[Union[...]]
                 else:
                     s.append(
-                        f'\t{key}?: {self.store.get_repr(type_)};'
+                        f'\t{key}?: {self.store.get_repr(type_, is_mapping_key=True)}'
                     )
             else:
-                s.append(f'\t{key}: {self.store.get_repr(type_)}')
+                s.append(
+                    f'\t{key}: {self.store.get_repr(type_, is_mapping_key=True)}')
         self.__repr = '{ ' + ', '.join(s) + ' }'
 
     def _make_not_inline(self, name: str, fields: Dict[str, Any]):
@@ -193,22 +210,23 @@ class TypeStruct:
                 f'type {self.name}<{", ".join(self.store.get_repr(n) for n in names)}> = {{'
             )
         else:
-            s.append(f'type {self.name}  = {{')
+            s.append(f'type {self.name} = {{')
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
             if optional:
                 if len(args) == 2:
                     self.store.add_type(type_)
                     s.append(
-                        f'\t{key}?: {self.store.get_repr(args[0])};'
+                        f'\t{key}?: {self.store.get_repr(args[0], is_mapping_key=True)};'
                     )
                 # means that we have an Optional[Union[...]]
                 else:
                     s.append(
-                        f'\t{key}?: {self.store.get_repr(type_)};'
+                        f'\t{key}?: {self.store.get_repr(type_, is_mapping_key=True)};'
                     )
             else:
-                s.append(f'\t{key}: {self.store.get_repr(type_)};')
+                s.append(
+                    f'\t{key}: {self.store.get_repr(type_, is_mapping_key=True)};')
         s.append('};')
         self.__repr = '\n'.join(s)
 
@@ -225,7 +243,7 @@ class TypeStruct:
             for handler in self.store.class_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
                     name, result = handler.build(
-                        self.value, self.store, origin, args)
+                        self.value, self.store, origin, args, self.is_mapping_key)
                     if not handler.is_mapping():
                         self.__repr = result
                     else:
@@ -241,12 +259,13 @@ class TypeStruct:
                     self.rendering = False
                     return
             # TODO: better handle error
-            print(f'Type not Supported {self.value}')
+            if self.raise_on_error:
+                raise MissingHandler(f'Type not Supported {self.value}')
         else:
             for handler in self.store.basic_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
                     name, result = handler.build(
-                        self.value, self.store, origin, args
+                        self.value, self.store, origin, args, self.is_mapping_key
                     )
                     self.__repr = result
                     if name is not None:
@@ -266,7 +285,7 @@ class TypeStruct:
             elif is_array(origin, args):
                 type_ = args[0]
                 # can't have optional here
-                self.__repr = f'{self.store.get_repr(type_)}[]'
+                self.__repr = f'({self.store.get_repr(type_)})[]'
                 self.rendered = True
                 self.rendering = False
             elif is_mapping(origin, args):
@@ -281,8 +300,11 @@ class TypeStruct:
                 self.rendered = True
                 self.rendering = False
             else:
-                print(f'No handler found for this type {self.value}')
                 self.rendering = False
+                if self.raise_on_error:
+                    raise MissingHandler(
+                        f'No handler found for this type {self.value}'
+                    )
 
     def get_repr(self) -> str:
         """returns the default representation for the type

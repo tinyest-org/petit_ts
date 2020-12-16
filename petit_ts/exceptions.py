@@ -1,0 +1,6 @@
+class InvalidTypeArgument(Exception):
+    ...
+
+
+class MissingHandler(Exception):
+    ...

@@ -4,4 +4,6 @@
 *pydantic_all
 *pydantic*
 .coverage
-petit_ts/test
+htmlcov
+t.ts
+coverage.xml

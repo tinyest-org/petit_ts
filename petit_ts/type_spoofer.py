@@ -32,8 +32,9 @@ def spoofer(spoofed: List[Tuple[Any, Any]]) -> Callable[[], None]:
                     if tp.__origin__ is fake:
                         return real
                 return tp.__origin__
-            if tp is typing.Generic:
-                return typing.Generic
+            # this is copied and pasted from the real library so no need to test
+            if tp is typing.Generic: # pragma: no cover 
+                return typing.Generic # pragma: no cover
             return None
 
         typing.get_origin = get_origin

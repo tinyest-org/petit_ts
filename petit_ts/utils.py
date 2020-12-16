@@ -17,10 +17,6 @@ class SafeCounter:
             self.value += value
         return self.value
 
-    def decrement(self, value: int = 1) -> int:
-        with self.lock:
-            self.value -= value
-        return self.value
 
 
 def is_optional(cls: pseudo_classes) -> Tuple[bool, Tuple[Any]]:

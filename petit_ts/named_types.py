@@ -1,27 +1,46 @@
-from typing import Any, Callable, List, Tuple, TypeVar, Union, get_origin
-import typing
-from .ast_utils import get_extended_name, get_variable_name, set_extended_name
+from typing import (Any, Callable, List, Optional, Tuple, TypeVar, Union,
+                    get_args, get_origin)
+
+from .ast_utils import get_variable_name
+
+NAME_TOKEN = '__petit_name__'
 
 
+class NamedUnion:
+    ...
 
 
-class NamedUnion: ...
-class NamedLiteral: ...
+class NamedLiteral:
+    ...
 
 
 T = TypeVar('T')
 
+# TODO: make a custom type that reflects the added functionnalities
+ExtendedBasicTypeHint = Any
+
+
+def get_extended_name(item: ExtendedBasicTypeHint) -> Optional[str]:
+    if hasattr(item, NAME_TOKEN):
+        return item.__dict__[NAME_TOKEN]
+    else:
+        return None
+
+
+def set_extended_name(item: ExtendedBasicTypeHint, name: Optional[str], is_union: bool) -> None:
+    i = item.copy_with(get_args(item))
+    if name is not None:
+        i.__dict__[NAME_TOKEN] = name
+        if is_union:
+            new_name = f'{name}NamedUnion'
+            i.__origin__ = NamedUnion
+            i.__repr__ = lambda: 'NamedUnion'
+            i.__str__ = lambda: new_name
+    return i
+
 
 def Named(item: T) -> T:
     origin = get_origin(item)
-    if origin is Union:
-        item.__origin__ = NamedUnion
-        item.__repr__ = lambda: 'NamedUnion'
     name = get_variable_name(with_raise=False)
-    # if the same type has already been defined, then we get the previous object
-    if get_extended_name(item) is not None:
-        return item
-    set_extended_name(item, name)
-    return item
 
-
+    return set_extended_name(item, name, is_union=origin is Union)
