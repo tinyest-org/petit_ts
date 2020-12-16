@@ -1,5 +1,6 @@
 # Petit ts
-
+![Codecov](https://img.shields.io/codecov/c/gh/plawn/petit_ts)
+[![GitHub license](https://img.shields.io/github/license/Plawn/petit_ts)](https://github.com/Plawn/petit_ts/blob/main/LICENSE.TXT)
 
 A Library to easly convert your python types to typescript types.
 
