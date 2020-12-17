@@ -121,22 +121,22 @@ class TSTypeStore:
 
         return self.types[store_hash_function(cls)].get_repr()
 
-    def get_full_repr(self, cls: pseudo_classes) -> str:
+    def get_full_repr(self, cls: pseudo_classes, exported: bool = False) -> str:
         if isinstance(cls, TypeVar):
             return cls.__name__
 
         if store_hash_function(cls) not in self.types:
             self.add_type(cls)
 
-        return self.types[store_hash_function(cls)].get_full_repr()
+        return self.types[store_hash_function(cls)].get_full_repr(exported=exported)
 
-    def get_all_not_inlined(self) -> str:
+    def get_all_not_inlined(self, export_all: bool = False) -> str:
         """return all the function where a body has to be added to the file
         """
         # ensure rendered
         self.render_types()
         return '\n'.join(
-            i.get_full_repr() for i in self.types.values() if i.name is not None
+            i.get_full_repr(exported=export_all) for i in self.types.values() if i.name is not None
         )
 
     def add_basic_handler(self, handler: RealType[BasicHandler]) -> None:
@@ -319,12 +319,12 @@ class TypeStruct:
             return self.name
         return self.__repr
 
-    def get_full_repr(self) -> str:
+    def get_full_repr(self, exported: bool = False) -> str:
         """Used to get the full body of not inlined type
         """
         if not self.rendered:
             self._render()
         if self.name != '':
-            if self.exported:
+            if self.exported or exported:
                 return 'export ' + self.__repr
             return self.__repr

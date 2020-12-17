@@ -289,3 +289,8 @@ class Test(unittest.TestCase):
     def test_patch(self):
         from typing import get_origin
         self.assertEqual(get_origin(list), None)
+
+    def test_export_one(self):
+        store = TSTypeStore()
+        a = Named(Union[int, str])
+        self.assertEqual(store.get_full_repr(a, exported=True), 'export type a = number /*int*/ | string;')

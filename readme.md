@@ -9,7 +9,7 @@ It's a part of the **petite_stack** (not released yet, as not mature enough).
 ### Example
 
 ```python
-from petit_ts import TSTypeStore, Name
+from petit_ts import TSTypeStore, Named
 
 store = TSTypeStore()
 
@@ -55,6 +55,21 @@ print(not_inlined)
 # };
 # type UserType = "admin" | "user";
 # type TestUnion = string | number /*int*/"
+
+not_inlined = store.get_all_not_inlined(exported_all=True)
+print(not_inlined)
+# >>> "export type CreateUserDto  = {
+# 	username: string;
+# 	password: string | Jeb;
+# 	role: UserType;
+# 	jeb: TestUnion;
+# };
+# export enum Jeb {
+# 	A = "R",
+# };
+# export type UserType = "admin" | "user";
+# export type TestUnion = string | number /*int*/"
+
 
 with open('res.ts', 'w') as f :
     # write what you need to the file
