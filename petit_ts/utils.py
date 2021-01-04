@@ -1,10 +1,12 @@
 import inspect
-from petit_ts.named_types import NamedUnion
 import threading
 from typing import (Any, Set, Tuple, TypeVar, Union, get_args, get_origin,
                     get_type_hints)
 
+from petit_ts.named_types import NamedUnion
+
 from .const import NoneType, pseudo_classes
+from .named_types import get_extended_name
 
 
 class SafeCounter:
@@ -16,7 +18,6 @@ class SafeCounter:
         with self.lock:
             self.value += value
         return self.value
-
 
 
 def is_optional(cls: pseudo_classes) -> Tuple[bool, Tuple[Any]]:
@@ -62,3 +63,10 @@ def is_generic(cls: type) -> Tuple[bool, Set[TypeVar]]:
     """
     fields = get_generic_params(cls)
     return len(fields) > 0, fields
+
+
+def store_hash_function(cls: Any) -> str:
+    base_name = str(cls)
+    if (extended_name := get_extended_name(cls)) is not None:
+        base_name = f'{extended_name}_{base_name}'
+    return base_name

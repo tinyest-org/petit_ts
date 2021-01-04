@@ -1,4 +1,4 @@
-from typing import Any, Final, List, Union
+from typing import Any, Final, List, Union, Tuple
 
 INLINE_TOKEN: Final = "__inline__"
 
@@ -6,29 +6,44 @@ NoneType = type(None)
 
 
 class undefined:
+    """
+    to use like undefined in typescript
+    """
     ...
 
 
 class null:
+    """
+    to use like null in typescript
+    """
     ...
 
 
-DEFAULT_TYPES = {
-    str(bool): "boolean",
-    str(None): "void",
-    str(NoneType): "undefined",
-    str(null): "null",
-    str(undefined): "undefined",
-    str(Any): "any",
-    str(int): "number /*int*/",
-    str(float): "number /*float*/",
-    str(str): "string",
-    str(dict): "object",
-    str(list): "any[]",
-    str(List[Any]): "any[]",
-    str(List): "any[]",
-    str(List[int]): "number[]",
-    str(List[str]): "string[]",
-}
+raw_default_types: List[Tuple[Any, str]] = [
+    (bool, "boolean"),
+    (None, "void"),
+    (NoneType, "undefined"),
+
+    (null, "null"),
+    (undefined, "undefined"),
+
+    (int, "number /*int*/"),
+    (float, "number /*float*/"),
+
+    (str, "string"),
+    (dict, "object"),
+    (list, "any[]"),
+
+    (List[Any], "any[]"),
+    (List, "any[]"),
+    (List[int], "number[]"),
+    (List[str], "string[]"),
+
+    # any's
+    (object, "any"),
+    (Any, "any"),
+]
+
+
 
 pseudo_classes = Union[dict, None, Any]

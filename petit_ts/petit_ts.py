@@ -6,14 +6,18 @@ from typing import Any, Dict, List, Optional, Set
 from typing import Type as RealType
 from typing import TypeVar, Union, get_args, get_origin
 
-from petit_ts.exceptions import MissingHandler
-from petit_ts.named_types import get_extended_name
+from .exceptions import MissingHandler
+
 
 from .base_handler import BasicHandler, ClassHandler
-from .const import DEFAULT_TYPES, INLINE_TOKEN, pseudo_classes
+from .const import raw_default_types, INLINE_TOKEN, pseudo_classes
 from .handlers import (DataclassHandler, EnumHandler, LiteralHandler,
                        TupleHandler, UnionHandler)
-from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
+from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional, store_hash_function
+
+DEFAULT_TYPES = {
+    store_hash_function(cls): _repr for cls, _repr in raw_default_types
+}
 
 # we use this to create different names for the inlined types
 """Be careful with this, it's a global for the library
@@ -21,13 +25,6 @@ from .utils import SafeCounter, is_array, is_generic, is_mapping, is_optional
 global_counter = SafeCounter()
 
 BASIC_TYPES = Union[int, str, float, bool, None]
-
-
-def store_hash_function(cls: Any) -> str:
-    base_name = str(cls)
-    if (extended_name := get_extended_name(cls)) is not None:
-        base_name = f'{extended_name}_{base_name}'
-    return base_name
 
 
 def Type(**kwargs) -> type:
