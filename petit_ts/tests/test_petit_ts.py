@@ -166,10 +166,10 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(T), res)
 
     def test_tuple(self):
-        T = Tuple[Tuple[str, str]]
-        store = TypeStore(export_all=True)
+        G = Tuple[Tuple[str, str]]
+        store = TypeStore(export_all=False, raise_on_error=True)
         res = '[[string, string]]'
-        self.assertEqual(store.get_repr(T), res)
+        self.assertEqual(store.get_repr(G), res)
 
     def test_named_tuple(self):
         store = TypeStore()
@@ -274,6 +274,7 @@ class Test(unittest.TestCase):
 
         with self.assertRaises(MissingHandler):
             print(store.get_repr(tuple()))
+        store.add_basic_handler(TupleHandler)
 
     def test_add_basic(self):
         store = TypeStore(raise_on_error=True)
@@ -289,4 +290,17 @@ class Test(unittest.TestCase):
     def test_export_one(self):
         store = TypeStore()
         a = Named(Union[int, str])
-        self.assertEqual(store.get_full_repr(a, exported=True), 'export type a = number /*int*/ | string;')
+        self.assertEqual(store.get_full_repr(a, exported=True),
+                         'export type a = number /*int*/ | string;')
+
+    def test_named_mapping(self):
+        store = TypeStore()
+        a = Named(Dict[int, str])
+        self.assertEqual(store.get_full_repr(a),
+                         'type a = { [key: number /*int*/]: string }')
+
+    def test_named_list(self):
+        store = TypeStore()
+        a = Named(List[int])
+        self.assertEqual(store.get_full_repr(a),
+                         'type a = (number /*int*/)[]')

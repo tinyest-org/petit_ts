@@ -1,5 +1,5 @@
-from typing import Any, Dict, Set, TypeVar
-from typing import Type as RealType
+from .petit_ts import TypeStruct
+from typing import Any, Dict, Set, TypeVar, Type
 
 from .base_handler import BaseHandler, BasicHandler, ClassHandler
 from .const import BASIC_TYPES, pseudo_classes, raw_default_types
@@ -10,8 +10,6 @@ from .utils import store_hash_function
 DEFAULT_TYPES = {
     store_hash_function(cls): _repr for cls, _repr in raw_default_types
 }
-
-from .petit_ts import TypeStruct
 
 
 class TypeStore:
@@ -38,20 +36,25 @@ class TypeStore:
         self.export_all = export_all
         self.raise_on_error = raise_on_error
         self.types: Dict[str, TypeStruct] = {}
-        # we put them here, because they are less standard than the other
+        
         # TODO: ts-specific
-        self.basic_handlers: Set[RealType[BasicHandler]] = {
-            UnionHandler,
-            LiteralHandler,
-            TupleHandler,
-            ArrayHandler,
-            MappingHandler,
-        }
-        # TODO: ts-specific
-        self.class_handlers: Set[RealType[ClassHandler]] = {
+        # TODO: asset!
+        # move to instances?
+        self.class_handlers: Set[Type[ClassHandler]] = {
             EnumHandler,
             DataclassHandler,
         }
+        # TODO: ts-specific
+        # TODO: asset!
+        # move to instances?
+        self.basic_handlers: Set[Type[BasicHandler]] = {
+            UnionHandler,
+            LiteralHandler,
+            ArrayHandler,
+            MappingHandler,
+            TupleHandler,
+        }
+
         self.__init_default_type()
 
     def __init_default_type(self):
@@ -108,14 +111,14 @@ class TypeStore:
             i.get_full_repr(exported=export_all) for i in self.types.values() if i.name is not None
         )
 
-    def add_basic_handler(self, handler: RealType[BasicHandler]) -> None:
+    def add_basic_handler(self, handler: Type[BasicHandler]) -> None:
         """Adds a `BasicHandler` to the store, in order to add support for a custom class
 
         if you want to add the support for datetime for example, it's here
         """
         self.basic_handlers.add(handler)
 
-    def add_class_handler(self, handler: RealType[ClassHandler]) -> None:
+    def add_class_handler(self, handler: Type[ClassHandler]) -> None:
         """Adds a `ClassHandler` to the store, in order to add support for a custom class
         """
         self.class_handlers.add(handler)
@@ -127,4 +130,3 @@ class TypeStore:
         """
         self.types[store_hash_function(
             type1)] = self.types[store_hash_function(type2)]
-

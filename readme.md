@@ -173,3 +173,4 @@ So you have to call `patch_get_origin_for_Union()` before importing pydantic.
 - Handle multiple type of collection
 - Handle abstract types
 - Choose between interface and type
+- make petit-type-system -> petit-ts based on it with ts specific handlers

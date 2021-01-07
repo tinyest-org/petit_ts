@@ -102,21 +102,25 @@ class DataclassHandler(ClassHandler):
 class TupleHandler(BasicHandler):
     @staticmethod
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        print(cls, origin, origin is tuple)
         return origin is tuple
-
+    
+    @staticmethod
     def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
+        built = '[' + f', '.join(store.get_repr(arg) for arg in args if arg is not NoneType) + ']'
         if (name := get_extended_name(cls)) is None:
-            return None, '[' + f', '.join(store.get_repr(arg) for arg in args if arg is not NoneType) + ']'
+            return None, built
         else:
-            return name, f'type {name} = ['+', '.join(store.get_repr(arg) for arg in args) + '];'
+            return name, f'type {name} = {built}'
 
 
 class ArrayHandler(BasicHandler):
     @staticmethod
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin == list and len(args) == 1
-
+    
+    @staticmethod
     def build(cls: List, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
         type_ = args[0]
         # can't have optional here
@@ -132,6 +136,7 @@ class MappingHandler(BasicHandler):
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin == dict and len(args) == 2
 
+    @staticmethod
     def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
         key_type, value_type = args
         # can't have optional here

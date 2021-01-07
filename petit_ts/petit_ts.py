@@ -9,7 +9,7 @@ from .exceptions import MissingHandler
 from .utils import is_generic, is_optional
 
 if TYPE_CHECKING:
-    from .store import TypeStore
+    from .store import TypeStore # pragma: no cover 
 
 
 class TypeStruct:
@@ -43,7 +43,7 @@ class TypeStruct:
         self.name: Optional[str] = None
 
     def _make_inline(self, fields: Dict[str, Any]):
-        # TODO: should move to ts-specific function 
+        # TODO: should move to ts-specific function
         s = []
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
@@ -64,7 +64,7 @@ class TypeStruct:
         self.__repr = '{ ' + ', '.join(s) + ' }'
 
     def _make_not_inline(self, name: str, fields: Dict[str, Any]):
-        # TODO: should move to ts-specific function 
+        # TODO: should move to ts-specific function
         self.name = name
         is_generic_, names = is_generic(self.value)
         s: List[str] = []
@@ -106,7 +106,8 @@ class TypeStruct:
             for handler in self.store.class_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
                     name, result = handler.build(
-                        self.value, self.store, origin, args, self.is_mapping_key)
+                        self.value, self.store, origin, args, self.is_mapping_key
+                    )
                     if not handler.is_mapping():
                         self.__repr = result
                     else:
@@ -123,6 +124,7 @@ class TypeStruct:
                     return
             # TODO: better handle error
             if self.raise_on_error:
+                print('HEY', self.value, inspect.isclass(self.value))
                 raise MissingHandler(f'Type not Supported {self.value}')
         else:
             for handler in self.store.basic_handlers:
