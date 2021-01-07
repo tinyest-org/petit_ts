@@ -9,6 +9,7 @@ from .base_handler import BasicHandler, ClassHandler
 from .const import INLINE_TOKEN, NoneType
 from .exceptions import InvalidTypeArgument
 from .named_types import NamedLiteral, NamedUnion, get_extended_name
+from .utils import is_optional
 
 if TYPE_CHECKING:
     from .petit_ts import TypeStore  # pragma: no cover
@@ -145,3 +146,24 @@ class MappingHandler(BasicHandler):
             return name,  built
         else:
             return name, f'type {name} = {built}'
+
+
+def make_inline_struct(fields, store:TypeStore):
+    s = []
+    for key, type_ in fields.items():
+        optional, args = is_optional(type_)
+        if optional:
+            if len(args) == 2:
+                store.add_type(type_)
+                s.append(
+                    f'\t{key}?: {store.get_repr(args[0], is_mapping_key=True)}'
+                )
+            # means that we have an Optional[Union[...]]
+            else:
+                s.append(
+                    f'\t{key}?: {store.get_repr(type_, is_mapping_key=True)}'
+                )
+        else:
+            s.append(
+                f'\t{key}: {store.get_repr(type_, is_mapping_key=True)}')
+    return '{ ' + ', '.join(s) + ' }'
