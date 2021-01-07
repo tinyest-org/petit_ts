@@ -6,7 +6,7 @@ from typing import (TYPE_CHECKING, Any, Dict, List, Optional, get_args,
 
 from .const import pseudo_classes
 from .exceptions import MissingHandler
-from .handlers import make_inline_struct
+from .handlers import make_inline_struct, make_not_inline
 from .utils import is_generic, is_optional
 
 if TYPE_CHECKING:
@@ -44,35 +44,7 @@ class TypeStruct:
         self.is_mapping_key = is_mapping_key
         self.name: Optional[str] = None
 
-    def _make_not_inline(self, name: str, fields: Dict[str, Any]):
-        # TODO: should move to ts-specific function
-        self.name = name
-        is_generic_, names = is_generic(self.value)
-        s: List[str] = []
-        if is_generic_:
-            s.append(
-                f'type {self.name}<{", ".join(self.store.get_repr(n) for n in names)}> = {{'
-            )
-        else:
-            s.append(f'type {self.name} = {{')
-        for key, type_ in fields.items():
-            optional, args = is_optional(type_)
-            if optional:
-                if len(args) == 2:
-                    self.store.add_type(type_)
-                    s.append(
-                        f'\t{key}?: {self.store.get_repr(args[0], is_mapping_key=True)};'
-                    )
-                # means that we have an Optional[Union[...]]
-                else:
-                    s.append(
-                        f'\t{key}?: {self.store.get_repr(type_, is_mapping_key=True)};'
-                    )
-            else:
-                s.append(
-                    f'\t{key}: {self.store.get_repr(type_, is_mapping_key=True)};')
-        s.append('};')
-        self.__repr = '\n'.join(s)
+    
 
     def _render(self) -> None:
         """Here is the actual magic :) """
@@ -95,7 +67,8 @@ class TypeStruct:
                         if name is None:
                             self.__repr = make_inline_struct(result, self.store)
                         else:
-                            self._make_not_inline(name, result)
+                            self.name = name
+                            self.__repr = make_not_inline(self.value, name, result, self.store)
                     # we have the check twice, because if you are not a
                     #  mapping, you can still not be inline
                     if name is not None:
