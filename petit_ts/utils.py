@@ -26,14 +26,6 @@ def is_optional(cls: pseudo_classes) -> Tuple[bool, Tuple[Any]]:
     return origin in (Union, NamedUnion) and NoneType in args, args
 
 
-def is_array(origin, args) -> bool:
-    return origin == list and len(args) == 1
-
-
-def is_mapping(origin, args) -> bool:
-    return origin == dict and len(args) == 2
-
-
 def __get_generic_params(cls: type, l: set) -> None:
     if inspect.isclass(cls):
         for type_ in get_type_hints(cls).values():

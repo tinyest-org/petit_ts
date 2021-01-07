@@ -5,13 +5,13 @@ from enum import Enum
 from typing import (TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple,
                     Union, get_type_hints)
 
-from petit_ts.named_types import NamedLiteral, NamedUnion
-from .named_types import get_extended_name
 from .base_handler import BasicHandler, ClassHandler
 from .const import INLINE_TOKEN, NoneType
 from .exceptions import InvalidTypeArgument
+from .named_types import NamedLiteral, NamedUnion, get_extended_name
+
 if TYPE_CHECKING:
-    from .petit_ts import TSTypeStore  # pragma: no cover
+    from .petit_ts import TypeStore  # pragma: no cover
 
 
 class UnionHandler(BasicHandler):
@@ -101,12 +101,42 @@ class DataclassHandler(ClassHandler):
 
 class TupleHandler(BasicHandler):
     @staticmethod
-    def should_handle(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any]) -> bool:
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin is tuple
 
-    def build(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
+    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
             return None, '[' + f', '.join(store.get_repr(arg) for arg in args if arg is not NoneType) + ']'
         else:
             return name, f'type {name} = ['+', '.join(store.get_repr(arg) for arg in args) + '];'
+
+
+class ArrayHandler(BasicHandler):
+    @staticmethod
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        return origin == list and len(args) == 1
+
+    def build(cls: List, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+        type_ = args[0]
+        # can't have optional here
+        built = f'({store.get_repr(type_)})[]'
+        if (name := get_extended_name(cls)) is None:
+            return None, built
+        else:
+            return name, f'type {name} = {built}'
+
+
+class MappingHandler(BasicHandler):
+    @staticmethod
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        return origin == dict and len(args) == 2
+
+    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+        key_type, value_type = args
+        # can't have optional here
+        built = f'{{ [key: {store.get_repr(key_type)}]: {store.get_repr(value_type)} }}'
+        if (name := get_extended_name(cls)) is None:
+            return name,  built
+        else:
+            return name, f'type {name} = {built}'

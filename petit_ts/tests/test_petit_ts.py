@@ -1,15 +1,17 @@
 # from __future__ import annotations
 
+import enum
+import unittest
 from dataclasses import dataclass
 from datetime import datetime
-import enum
+from typing import (Any, AnyStr, Dict, Generic, List, Literal, Optional, Set,
+                    Tuple, TypeVar, Union, get_origin, get_type_hints)
+
 from petit_ts.handlers import TupleHandler
 from petit_ts.named_types import get_extended_name
-from petit_ts.petit_ts import Type
-from typing import Any, AnyStr, Dict, Generic, Literal, Optional, Set, Tuple, TypeVar, Union, get_origin, get_type_hints, List
-import unittest
+from petit_ts.inline_type import Type
 
-from .. import ClassHandler, Named, TSTypeStore, patch_get_origin_for_Union
+from .. import ClassHandler, Named, TypeStore, patch_get_origin_for_Union
 from ..exceptions import InvalidTypeArgument, MissingHandler
 
 # this makes us able, to use NamedUnion as Union for pydantic, without it we can't use
@@ -49,7 +51,7 @@ from ..exceptions import InvalidTypeArgument, MissingHandler
 # A = Named(Optional[Union[int, str, Deb, B, C]])
 
 
-# store = TSTypeStore(export_all=True)
+# store = TypeStore(export_all=True)
 # store.add_class_handler(BaseModelHandler)
 # store.get_repr(A)
 # print(store.get_repr(B))
@@ -68,39 +70,39 @@ from ..exceptions import InvalidTypeArgument, MissingHandler
 
 class Test(unittest.TestCase):
     def test_named_literal(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         B = Named(Literal[1, 2, 'test_string'])
         res = 'export type B = 1 | 2 | "test_string";'
         self.assertEqual(store.get_full_repr(B), res)
         self.assertEqual(store.get_repr(B), 'B')
 
     def test_named_inline_literal(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         B = Literal[1, 2, 'test_string']
         res = '1 | 2 | "test_string"'
         self.assertEqual(store.get_repr(B), res)
 
     def test_invalid_literal(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         B = Optional[Literal[1, int]]
         with self.assertRaises(InvalidTypeArgument):
             store.get_repr(B)
 
     def test_named_Union(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         K = Named(Optional[Union[int, str]])
         res = 'export type K = number /*int*/ | string | undefined;'
         self.assertEqual(store.get_full_repr(K), res)
         self.assertEqual(store.get_repr(K), 'K')
 
     def test_inline_Union_not_mapping(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         B = Optional[Union[int, str]]
         res = 'number /*int*/ | string | undefined'
         self.assertEqual(store.get_repr(B), res)
 
     def test_inline_Union_mapping(self):
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         T = TypeVar('T')
 
         @dataclass
@@ -120,7 +122,7 @@ class Test(unittest.TestCase):
             A = 'A'
             B = 1
 
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         res = 'export enum e {\n\tA = "A",\n\tB = 1,\n};'
         self.assertEqual(store.get_full_repr(e), res)
 
@@ -129,7 +131,7 @@ class Test(unittest.TestCase):
             A = 'A'
             B = {'test': 1}
 
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         res = 'export enum e {\n\tA = "A",\n};'
         with self.assertRaises(InvalidTypeArgument):
             store.get_full_repr(e)
@@ -154,7 +156,7 @@ class Test(unittest.TestCase):
                 fields = get_type_hints(cls)
                 return name, fields
 
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         store.add_class_handler(BaseModelHandler)
 
         class T(BaseModel):
@@ -165,12 +167,12 @@ class Test(unittest.TestCase):
 
     def test_tuple(self):
         T = Tuple[Tuple[str, str]]
-        store = TSTypeStore(export_all=True)
+        store = TypeStore(export_all=True)
         res = '[[string, string]]'
         self.assertEqual(store.get_repr(T), res)
 
     def test_named_tuple(self):
-        store = TSTypeStore()
+        store = TypeStore()
         C = Named(Tuple[int, str])
         D = Named(Optional[Tuple[C, Tuple[str, str]]])
         res = 'type D = [C, [string, string]] | undefined;'
@@ -178,7 +180,7 @@ class Test(unittest.TestCase):
 
     def test_inline_dataclass(self):
         a = Type(a=Optional[str], b=Optional[Union[int, str]], c=int)
-        store = TSTypeStore()
+        store = TypeStore()
         res = '{ \ta?: string, \tb?: number /*int*/ | string, \tc: number /*int*/ }'
         self.assertEqual(store.get_repr(a), res)
 
@@ -187,20 +189,20 @@ class Test(unittest.TestCase):
         class a:
             a: Optional[str]
             b: int
-        store = TSTypeStore()
+        store = TypeStore()
         res = 'type a = {\n\ta?: string;\n\tb: number /*int*/;\n};'
         self.assertEqual(store.get_full_repr(a), res)
         self.assertEqual(store.get_repr(a), 'a')
 
     def test_basic_array(self):
         a = List[int]
-        store = TSTypeStore()
+        store = TypeStore()
         res = 'number[]'
         self.assertEqual(store.get_repr(a), res)
 
     def test_inline_generic_array(self):
         b = List[Union[int, str]]
-        store = TSTypeStore()
+        store = TypeStore()
         res = '(number /*int*/ | string)[]'
         print('extended name should be None', get_extended_name(b))
         self.assertEqual(store.get_repr(b), res)
@@ -208,7 +210,7 @@ class Test(unittest.TestCase):
     def test_generic_array(self):
         u = Named(Union[int, str])
         a = List[u]
-        store = TSTypeStore()
+        store = TypeStore()
         res = '(u)[]'
         print('extended name should be u', get_extended_name(u))
         self.assertEqual(store.get_repr(a), res)
@@ -217,23 +219,17 @@ class Test(unittest.TestCase):
         K = str
         V = TypeVar('V')
         u = Dict[K, V]
-        store = TSTypeStore()
+        store = TypeStore()
         res = '{ [key: string]: V }'
         self.assertEqual(store.get_repr(u), res)
 
-    def test_plain_dict_type(self):
-        t = {'deb': int}
-        res = '{ deb: number /*int*/ }'
-        store = TSTypeStore()
-        self.assertEqual(store.get_repr(t), res)
-
     def test_store(self):
-        store = TSTypeStore()
+        store = TypeStore()
         self.assertEqual(store.get_repr(TypeVar('T')), 'T')
         self.assertEqual(store.get_full_repr(TypeVar('T')), 'T')
 
     def test_all_not_inlined(self):
-        store = TSTypeStore()
+        store = TypeStore()
         F = Named(Union[str, int])
         G = Named(Optional[Union[str, int, float]])
         store.add_type(F)
@@ -242,7 +238,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_all_not_inlined(), res)
 
     def test_basic_cast(self):
-        store = TSTypeStore()
+        store = TypeStore()
         store.add_basic_cast(datetime, str)
 
         @dataclass
@@ -253,7 +249,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(t), res)
 
     def test_no_handler_class(self):
-        store = TSTypeStore()
+        store = TypeStore()
 
         @dataclass
         class t:
@@ -263,7 +259,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(t), res)
 
     def test_no_handler_class_with_raise(self):
-        store = TSTypeStore(raise_on_error=True)
+        store = TypeStore(raise_on_error=True)
 
         @dataclass
         class t:
@@ -273,14 +269,14 @@ class Test(unittest.TestCase):
             store.get_full_repr(t)
 
     def test_no_handler_not_class(self):
-        store = TSTypeStore(raise_on_error=True)
+        store = TypeStore(raise_on_error=True)
         store.basic_handlers.remove(TupleHandler)
 
         with self.assertRaises(MissingHandler):
             print(store.get_repr(tuple()))
 
     def test_add_basic(self):
-        store = TSTypeStore(raise_on_error=True)
+        store = TypeStore(raise_on_error=True)
         # nomminally a handler is never removed
         store.basic_handlers.remove(TupleHandler)
         store.add_basic_handler(TupleHandler)
@@ -291,6 +287,6 @@ class Test(unittest.TestCase):
         self.assertEqual(get_origin(list), None)
 
     def test_export_one(self):
-        store = TSTypeStore()
+        store = TypeStore()
         a = Named(Union[int, str])
         self.assertEqual(store.get_full_repr(a, exported=True), 'export type a = number /*int*/ | string;')

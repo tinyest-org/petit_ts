@@ -47,3 +47,5 @@ raw_default_types: List[Tuple[Any, str]] = [
 
 
 pseudo_classes = Union[dict, None, Any]
+
+BASIC_TYPES = Union[int, str, float, bool, None]
