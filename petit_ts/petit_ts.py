@@ -92,7 +92,7 @@ class TypeStruct:
                     self.rendered = True
                     self.rendering = False
                     return
-
+            # TODO:
             # handle generic classes
             # other cases should have been handled before
             if len(args) > 0:

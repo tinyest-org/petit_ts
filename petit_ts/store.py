@@ -1,5 +1,5 @@
 from .petit_ts import TypeStruct
-from typing import Any, Dict, Set, TypeVar, Type
+from typing import Any, Dict, List, Set, TypeVar, Type
 
 from .base_handler import BaseHandler, BasicHandler, ClassHandler
 from .const import BASIC_TYPES, pseudo_classes, raw_default_types
@@ -40,20 +40,20 @@ class TypeStore:
         # TODO: ts-specific
         # TODO: asset!
         # move to instances?
-        self.class_handlers: Set[Type[ClassHandler]] = {
+        self.class_handlers: List[Type[ClassHandler]] = [
             EnumHandler,
             DataclassHandler,
-        }
+        ]
         # TODO: ts-specific
         # TODO: asset!
         # move to instances?
-        self.basic_handlers: Set[Type[BasicHandler]] = {
+        self.basic_handlers: List[Type[BasicHandler]] = [
             UnionHandler,
             LiteralHandler,
             ArrayHandler,
             MappingHandler,
             TupleHandler,
-        }
+        ]
 
         self.__init_default_type()
 
@@ -116,12 +116,12 @@ class TypeStore:
 
         if you want to add the support for datetime for example, it's here
         """
-        self.basic_handlers.add(handler)
+        self.basic_handlers.append(handler)
 
     def add_class_handler(self, handler: Type[ClassHandler]) -> None:
         """Adds a `ClassHandler` to the store, in order to add support for a custom class
         """
-        self.class_handlers.add(handler)
+        self.class_handlers.append(handler)
 
     def add_basic_cast(self, type1: Any, type2: BASIC_TYPES) -> None:
         """For example if you want to cast datetime.datetime directly as str
