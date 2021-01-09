@@ -1,10 +1,8 @@
-from .petit_ts import TypeStruct
-from typing import Any, Dict, List, TypeVar, Type, Tuple
+from typing import Any, Dict, List, Tuple, Type, TypeVar
 
 from .base_handler import BasicHandler, ClassHandler
-from .const import BASIC_TYPES, pseudo_classes, ts_raw_default_types
-from .handlers import (ArrayHandler, DataclassHandler, EnumHandler,
-                       LiteralHandler, MappingHandler, TupleHandler, UnionHandler)
+from .const import BASIC_TYPES, NoneType, pseudo_classes
+from .petit_ts import TypeStruct
 from .utils import store_hash_function
 
 
@@ -29,7 +27,7 @@ class TypeStore:
     _class_handlers: List[Type[ClassHandler]] = []
     _basic_handlers: List[Type[BasicHandler]] = []
     _basic_types: List[Tuple[Any, str]] = []
-    export_token: str = None
+    _export_token: str = None
 
     def __init__(self, export_all: bool = False, raise_on_error: bool = False):
         self.export_all = export_all
@@ -42,6 +40,14 @@ class TypeStore:
             store_hash_function(key): TypeStruct(value, self, False, default=True)
             for key, value in self._basic_types
         }
+
+    @property
+    def export_token(self) -> str:
+        return self._export_token
+
+    @export_token.setter
+    def export_token(self) -> None:
+        raise Exception('ReadOnly property')
 
     def add_type(self, cls: pseudo_classes, exported: bool = False, is_mapping_key: bool = False) -> None:
         """Adds a type to the store in order to build it's representation in function of the others
@@ -111,43 +117,3 @@ class TypeStore:
         """
         self.types[store_hash_function(
             type1)] = self.types[store_hash_function(type2)]
-
-
-def create_store_class(
-    export_token: str,
-    basic_types: List[Tuple[Any, str]],
-    basic_handlers: List[Type[BasicHandler]],
-    class_handlers: List[Type[ClassHandler]],
-) -> Type[TypeStore]:
-
-    class Store(TypeStore):
-        _basic_handlers = basic_handlers
-        _class_handlers = class_handlers
-        _basic_types = basic_types
-        export_token = export_token
-
-    return Store
-
-
-# TS-specifics
-ts_export_token = 'export'
-
-ts_class_handlers: List[Type[ClassHandler]] = [
-    EnumHandler,
-    DataclassHandler,
-]
-
-ts_basic_handlers: List[Type[BasicHandler]] = [
-    UnionHandler,
-    LiteralHandler,
-    ArrayHandler,
-    MappingHandler,
-    TupleHandler,
-]
-
-TSTypeStore = create_store_class(
-    ts_export_token,
-    basic_handlers=ts_basic_handlers,
-    class_handlers=ts_class_handlers,
-    basic_types=ts_raw_default_types,
-)
