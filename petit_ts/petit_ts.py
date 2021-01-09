@@ -58,6 +58,7 @@ class TypeStruct:
         if inspect.isclass(self.value):
             for handler in self.store.class_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
+                    
                     name, result = handler.build(
                         self.value, self.store, origin, args, self.is_mapping_key
                     )
@@ -78,7 +79,6 @@ class TypeStruct:
                     return
             # TODO: better handle error
             if self.raise_on_error:
-                print('HEY', self.value, inspect.isclass(self.value))
                 raise MissingHandler(f'Type not Supported {self.value}')
         else:
             for handler in self.store.basic_handlers:

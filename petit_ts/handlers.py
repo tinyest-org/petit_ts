@@ -103,7 +103,6 @@ class DataclassHandler(ClassHandler):
 class TupleHandler(BasicHandler):
     @staticmethod
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
-        print(cls, origin, origin is tuple)
         return origin is tuple
 
     @staticmethod

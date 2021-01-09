@@ -1,15 +1,11 @@
 from .petit_ts import TypeStruct
-from typing import Any, Dict, List, Set, TypeVar, Type
+from typing import Any, Dict, List, TypeVar, Type, Tuple
 
-from .base_handler import BaseHandler, BasicHandler, ClassHandler
-from .const import BASIC_TYPES, pseudo_classes, raw_default_types
+from .base_handler import BasicHandler, ClassHandler
+from .const import BASIC_TYPES, pseudo_classes, ts_raw_default_types
 from .handlers import (ArrayHandler, DataclassHandler, EnumHandler,
                        LiteralHandler, MappingHandler, TupleHandler, UnionHandler)
 from .utils import store_hash_function
-
-DEFAULT_TYPES = {
-    store_hash_function(cls): _repr for cls, _repr in raw_default_types
-}
 
 
 class TypeStore:
@@ -30,36 +26,21 @@ class TypeStore:
     - store.render() and store.get_all_not_inlined()
     - Then you can use store.get_repr() for your classes 
     """
-    export_token = 'export'
+    _class_handlers: List[Type[ClassHandler]] = []
+    _basic_handlers: List[Type[BasicHandler]] = []
+    _basic_types: List[Tuple[Any, str]] = []
+    export_token: str = None
 
     def __init__(self, export_all: bool = False, raise_on_error: bool = False):
         self.export_all = export_all
         self.raise_on_error = raise_on_error
-        self.types: Dict[str, TypeStruct] = {}
-        
-        # TODO: ts-specific
-        # TODO: asset!
-        # move to instances?
         self.class_handlers: List[Type[ClassHandler]] = [
-            EnumHandler,
-            DataclassHandler,
-        ]
-        # TODO: ts-specific
-        # TODO: asset!
-        # move to instances?
+            *self._class_handlers]
         self.basic_handlers: List[Type[BasicHandler]] = [
-            UnionHandler,
-            LiteralHandler,
-            ArrayHandler,
-            MappingHandler,
-            TupleHandler,
-        ]
-
-        self.__init_default_type()
-
-    def __init_default_type(self):
-        self.types = {
-            key: TypeStruct(value, self, False, default=True) for key, value in DEFAULT_TYPES.items()
+            *self._basic_handlers]
+        self.types: Dict[str, TypeStruct] = {
+            store_hash_function(key): TypeStruct(value, self, False, default=True)
+            for key, value in self._basic_types
         }
 
     def add_type(self, cls: pseudo_classes, exported: bool = False, is_mapping_key: bool = False) -> None:
@@ -130,3 +111,43 @@ class TypeStore:
         """
         self.types[store_hash_function(
             type1)] = self.types[store_hash_function(type2)]
+
+
+def create_store_class(
+    export_token: str,
+    basic_types: List[Tuple[Any, str]],
+    basic_handlers: List[Type[BasicHandler]],
+    class_handlers: List[Type[ClassHandler]],
+) -> Type[TypeStore]:
+
+    class Store(TypeStore):
+        _basic_handlers = basic_handlers
+        _class_handlers = class_handlers
+        _basic_types = basic_types
+        export_token = export_token
+
+    return Store
+
+
+# TS-specifics
+ts_export_token = 'export'
+
+ts_class_handlers: List[Type[ClassHandler]] = [
+    EnumHandler,
+    DataclassHandler,
+]
+
+ts_basic_handlers: List[Type[BasicHandler]] = [
+    UnionHandler,
+    LiteralHandler,
+    ArrayHandler,
+    MappingHandler,
+    TupleHandler,
+]
+
+TSTypeStore = create_store_class(
+    ts_export_token,
+    basic_handlers=ts_basic_handlers,
+    class_handlers=ts_class_handlers,
+    basic_types=ts_raw_default_types,
+)

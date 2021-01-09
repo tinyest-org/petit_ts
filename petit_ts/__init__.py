@@ -1,5 +1,5 @@
 from .petit_ts import pseudo_classes
-from .store import TypeStore
+from .store import TypeStore, TSTypeStore
 from .inline_type import Type
 from .base_handler import ClassHandler, BasicHandler, BaseHandler
 from .named_types import Named

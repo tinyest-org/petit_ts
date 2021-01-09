@@ -19,7 +19,7 @@ class null:
     ...
 
 
-raw_default_types: List[Tuple[Any, str]] = [
+ts_raw_default_types: List[Tuple[Any, str]] = [
     (bool, "boolean"),
     (None, "void"),
     (NoneType, "undefined"),
