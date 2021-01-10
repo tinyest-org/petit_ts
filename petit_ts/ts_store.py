@@ -1,11 +1,11 @@
 from typing import Any, List, Tuple, Type
 
-from .base_handler import BasicHandler, ClassHandler
-from .const import NoneType, undefined, null
+from petit_type_system.base_handler import BasicHandler, ClassHandler
+from petit_type_system.const import NoneType, undefined, null
 from .handlers import (ArrayHandler, DataclassHandler, EnumHandler,
                        LiteralHandler, MappingHandler, TupleHandler,
                        UnionHandler, StructHandler)
-from .store import create_store_class
+from petit_type_system.store import create_store_class
 
 
 

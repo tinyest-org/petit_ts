@@ -2,8 +2,8 @@ import random as rd
 import unittest
 from typing import Union
 
-from ..ast_utils import AstFailure, get_variable_name, TooManyAssignments
-from ..named_types import Named, get_extended_name, set_extended_name
+from petit_type_system.ast_utils import AstFailure, get_variable_name, TooManyAssignments
+from petit_type_system.named_types import Named, get_extended_name, set_extended_name
 
 
 class ASTUtilsTests(unittest.TestCase):
