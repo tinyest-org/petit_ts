@@ -5,7 +5,7 @@ from enum import Enum
 from typing import (TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple,
                     Union, get_type_hints)
 
-from .base_handler import BasicHandler, ClassHandler
+from .base_handler import BasicHandler, ClassHandler, StructHandler as BaseStructHandler
 from .const import INLINE_TOKEN, NoneType
 from .exceptions import InvalidTypeArgument
 from .named_types import NamedLiteral, NamedUnion, get_extended_name
@@ -148,52 +148,53 @@ class MappingHandler(BasicHandler):
             return name, f'type {name} = {built}'
 
 
-def make_inline_struct(fields, store: TypeStore):
-    s = []
-    for key, type_ in fields.items():
-        optional, args = is_optional(type_)
-        if optional:
-            if len(args) == 2:
-                store.add_type(type_)
-                s.append(
-                    f'\t{key}?: {store.get_repr(args[0], is_mapping_key=True)}'
-                )
-            # means that we have an Optional[Union[...]]
+class StructHandler(BaseStructHandler):
+    @staticmethod
+    def make_inline_struct(cls: Any, fields: Dict[str, Any], store: TypeStore) -> str:
+        s = []
+        for key, type_ in fields.items():
+            optional, args = is_optional(type_)
+            if optional:
+                if len(args) == 2:
+                    store.add_type(type_)
+                    s.append(
+                        f'{key}?: {store.get_repr(args[0], is_mapping_key=True)}'
+                    )
+                # means that we have an Optional[Union[...]]
+                else:
+                    s.append(
+                        f'{key}?: {store.get_repr(type_, is_mapping_key=True)}'
+                    )
             else:
                 s.append(
-                    f'\t{key}?: {store.get_repr(type_, is_mapping_key=True)}'
-                )
-        else:
+                    f'{key}: {store.get_repr(type_, is_mapping_key=True)}')
+        return '{ ' + ', '.join(s) + ' }'
+
+    @staticmethod
+    def make_struct(cls: Any, name: str, fields: Dict[str, Any], store: TypeStore) -> str:
+        is_generic_, names = is_generic(cls)
+        s: List[str] = []
+        if is_generic_:
             s.append(
-                f'\t{key}: {store.get_repr(type_, is_mapping_key=True)}')
-    return '{ ' + ', '.join(s) + ' }'
-
-
-def make_not_inline(value: Any, name: str, fields: Dict[str, Any], store: TypeStore):
-    # TODO: should move to ts-specific function
-    is_generic_, names = is_generic(value)
-    s: List[str] = []
-    if is_generic_:
-        s.append(
-            f'type {name}<{", ".join(store.get_repr(n) for n in names)}> = {{'
-        )
-    else:
-        s.append(f'type {name} = {{')
-    for key, type_ in fields.items():
-        optional, args = is_optional(type_)
-        if optional:
-            if len(args) == 2:
-                store.add_type(type_)
-                s.append(
-                    f'\t{key}?: {store.get_repr(args[0], is_mapping_key=True)};'
-                )
-            # means that we have an Optional[Union[...]]
+                f'type {name}<{", ".join(store.get_repr(n) for n in names)}> = {{'
+            )
+        else:
+            s.append(f'type {name} = {{')
+        for key, type_ in fields.items():
+            optional, args = is_optional(type_)
+            if optional:
+                if len(args) == 2:
+                    store.add_type(type_)
+                    s.append(
+                        f'\t{key}?: {store.get_repr(args[0], is_mapping_key=True)};'
+                    )
+                # means that we have an Optional[Union[...]]
+                else:
+                    s.append(
+                        f'\t{key}?: {store.get_repr(type_, is_mapping_key=True)};'
+                    )
             else:
                 s.append(
-                    f'\t{key}?: {store.get_repr(type_, is_mapping_key=True)};'
-                )
-        else:
-            s.append(
-                f'\t{key}: {store.get_repr(type_, is_mapping_key=True)};')
-    s.append('};')
-    return '\n'.join(s)
+                    f'\t{key}: {store.get_repr(type_, is_mapping_key=True)};')
+        s.append('};')
+        return '\n'.join(s)

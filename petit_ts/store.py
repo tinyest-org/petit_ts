@@ -1,13 +1,13 @@
 from typing import Any, Dict, List, Tuple, Type, TypeVar
 
-from .base_handler import BasicHandler, ClassHandler
+from .base_handler import BasicHandler, ClassHandler, StructHandler
 from .const import BASIC_TYPES, NoneType, pseudo_classes
 from .petit_ts import TypeStruct
 from .utils import store_hash_function
 
 
 class TypeStore:
-    # TODO: make interface and make different store for different languages
+    # TODO: update documentation to reflect changes
     """Required in order to link all the types between themselves
     Supports: 
     - `str`, `bool`, `int`, `float`, `Any`, `None` 
@@ -28,6 +28,7 @@ class TypeStore:
     _basic_handlers: List[Type[BasicHandler]] = []
     _basic_types: List[Tuple[Any, str]] = []
     _export_token: str = None
+    _struct_handler: StructHandler = None
 
     def __init__(self, export_all: bool = False, raise_on_error: bool = False):
         self.export_all = export_all
@@ -47,6 +48,14 @@ class TypeStore:
 
     @export_token.setter
     def export_token(self) -> None:
+        raise Exception('ReadOnly property')
+
+    @property
+    def struct_handler(self) -> StructHandler:
+        return self._struct_handler
+
+    @struct_handler.setter
+    def struct_handler(self) -> None:
         raise Exception('ReadOnly property')
 
     def add_type(self, cls: pseudo_classes, exported: bool = False, is_mapping_key: bool = False) -> None:
@@ -117,3 +126,21 @@ class TypeStore:
         """
         self.types[store_hash_function(
             type1)] = self.types[store_hash_function(type2)]
+
+
+def create_store_class(
+    export_token: str,
+    basic_types: List[Tuple[Any, str]],
+    struct_handler: StructHandler,
+    basic_handlers: List[Type[BasicHandler]],
+    class_handlers: List[Type[ClassHandler]],
+) -> Type[TypeStore]:
+
+    class Store(TypeStore):
+        _basic_handlers = basic_handlers
+        _class_handlers = class_handlers
+        _basic_types = basic_types
+        _export_token = export_token
+        _struct_handler = struct_handler
+
+    return Store

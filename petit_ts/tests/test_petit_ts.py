@@ -181,7 +181,7 @@ class Test(unittest.TestCase):
     def test_inline_dataclass(self):
         a = Type(a=Optional[str], b=Optional[Union[int, str]], c=int)
         store = TSTypeStore()
-        res = '{ \ta?: string, \tb?: number /*int*/ | string, \tc: number /*int*/ }'
+        res = '{ a?: string, b?: number /*int*/ | string, c: number /*int*/ }'
         self.assertEqual(store.get_repr(a), res)
 
     def test_not_inline_dataclass(self):

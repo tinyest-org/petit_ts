@@ -6,11 +6,10 @@ from typing import (TYPE_CHECKING, Any, Dict, List, Optional, get_args,
 
 from .const import pseudo_classes
 from .exceptions import MissingHandler
-from .handlers import make_inline_struct, make_not_inline
 from .utils import is_generic, is_optional
 
 if TYPE_CHECKING:
-    from .store import TypeStore  # pragma: no cover 
+    from .store import TypeStore  # pragma: no cover
 
 
 class TypeStruct:
@@ -44,8 +43,6 @@ class TypeStruct:
         self.is_mapping_key = is_mapping_key
         self.name: Optional[str] = None
 
-    
-
     def _render(self) -> None:
         """Here is the actual magic :) """
         if self.rendering:
@@ -58,7 +55,7 @@ class TypeStruct:
         if inspect.isclass(self.value):
             for handler in self.store.class_handlers:
                 if handler.should_handle(self.value, self.store, origin, args):
-                    
+
                     name, result = handler.build(
                         self.value, self.store, origin, args, self.is_mapping_key
                     )
@@ -66,10 +63,18 @@ class TypeStruct:
                         self.__repr = result
                     else:
                         if name is None:
-                            self.__repr = make_inline_struct(result, self.store)
+                            self.__repr = self.store.struct_handler.make_inline_struct(
+                                self.value, result, self.store
+                            )
                         else:
                             self.name = name
-                            self.__repr = make_not_inline(self.value, name, result, self.store)
+                            self.__repr = (
+                                self.store
+                                .struct_handler
+                                .make_struct(
+                                    self.value, name, result, self.store
+                                )
+                            )
                     # we have the check twice, because if you are not a
                     #  mapping, you can still not be inline
                     if name is not None:
