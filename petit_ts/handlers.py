@@ -5,13 +5,14 @@ from enum import Enum
 from typing import (TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple,
                     Union, get_type_hints)
 
-from petit_ts.named_types import NamedLiteral, NamedUnion
-from .named_types import get_extended_name
-from .base_handler import BasicHandler, ClassHandler
+from .base_handler import BasicHandler, ClassHandler, StructHandler as BaseStructHandler
 from .const import INLINE_TOKEN, NoneType
 from .exceptions import InvalidTypeArgument
+from .named_types import NamedLiteral, NamedUnion, get_extended_name
+from .utils import is_optional, is_generic
+
 if TYPE_CHECKING:
-    from .petit_ts import TSTypeStore  # pragma: no cover
+    from .petit_ts import TypeStore  # pragma: no cover
 
 
 class UnionHandler(BasicHandler):
@@ -101,12 +102,99 @@ class DataclassHandler(ClassHandler):
 
 class TupleHandler(BasicHandler):
     @staticmethod
-    def should_handle(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any]) -> bool:
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin is tuple
 
-    def build(cls: Any, store: TSTypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
+    @staticmethod
+    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
+        built = '[' + f', '.join(store.get_repr(arg)
+                                 for arg in args if arg is not NoneType) + ']'
         if (name := get_extended_name(cls)) is None:
-            return None, '[' + f', '.join(store.get_repr(arg) for arg in args if arg is not NoneType) + ']'
+            return None, built
         else:
-            return name, f'type {name} = ['+', '.join(store.get_repr(arg) for arg in args) + '];'
+            return name, f'type {name} = {built}'
+
+
+class ArrayHandler(BasicHandler):
+    @staticmethod
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        return origin == list and len(args) == 1
+
+    @staticmethod
+    def build(cls: List, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+        type_ = args[0]
+        # can't have optional here
+        built = f'({store.get_repr(type_)})[]'
+        if (name := get_extended_name(cls)) is None:
+            return None, built
+        else:
+            return name, f'type {name} = {built}'
+
+
+class MappingHandler(BasicHandler):
+    @staticmethod
+    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+        return origin == dict and len(args) == 2
+
+    @staticmethod
+    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+        key_type, value_type = args
+        # can't have optional here
+        built = f'{{ [key: {store.get_repr(key_type)}]: {store.get_repr(value_type)} }}'
+        if (name := get_extended_name(cls)) is None:
+            return name,  built
+        else:
+            return name, f'type {name} = {built}'
+
+
+class StructHandler(BaseStructHandler):
+    @staticmethod
+    def make_inline_struct(cls: Any, fields: Dict[str, Any], store: TypeStore) -> str:
+        s = []
+        for key, type_ in fields.items():
+            optional, args = is_optional(type_)
+            if optional:
+                if len(args) == 2:
+                    store.add_type(type_)
+                    s.append(
+                        f'{key}?: {store.get_repr(args[0], is_mapping_key=True)}'
+                    )
+                # means that we have an Optional[Union[...]]
+                else:
+                    s.append(
+                        f'{key}?: {store.get_repr(type_, is_mapping_key=True)}'
+                    )
+            else:
+                s.append(
+                    f'{key}: {store.get_repr(type_, is_mapping_key=True)}')
+        return '{ ' + ', '.join(s) + ' }'
+
+    @staticmethod
+    def make_struct(cls: Any, name: str, fields: Dict[str, Any], store: TypeStore) -> str:
+        is_generic_, names = is_generic(cls)
+        s: List[str] = []
+        if is_generic_:
+            s.append(
+                f'type {name}<{", ".join(store.get_repr(n) for n in names)}> = {{'
+            )
+        else:
+            s.append(f'type {name} = {{')
+        for key, type_ in fields.items():
+            optional, args = is_optional(type_)
+            if optional:
+                if len(args) == 2:
+                    store.add_type(type_)
+                    s.append(
+                        f'\t{key}?: {store.get_repr(args[0], is_mapping_key=True)};'
+                    )
+                # means that we have an Optional[Union[...]]
+                else:
+                    s.append(
+                        f'\t{key}?: {store.get_repr(type_, is_mapping_key=True)};'
+                    )
+            else:
+                s.append(
+                    f'\t{key}: {store.get_repr(type_, is_mapping_key=True)};')
+        s.append('};')
+        return '\n'.join(s)

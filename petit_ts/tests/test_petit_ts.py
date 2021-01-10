@@ -1,13 +1,15 @@
 # from __future__ import annotations
 
+import enum
+import unittest
 from dataclasses import dataclass
 from datetime import datetime
-import enum
+from typing import (Any, AnyStr, Dict, Generic, List, Literal, Optional, Set,
+                    Tuple, TypeVar, Union, get_origin, get_type_hints)
+
 from petit_ts.handlers import TupleHandler
 from petit_ts.named_types import get_extended_name
-from petit_ts.petit_ts import Type
-from typing import Any, AnyStr, Dict, Generic, Literal, Optional, Set, Tuple, TypeVar, Union, get_origin, get_type_hints, List
-import unittest
+from petit_ts.inline_type import Type
 
 from .. import ClassHandler, Named, TSTypeStore, patch_get_origin_for_Union
 from ..exceptions import InvalidTypeArgument, MissingHandler
@@ -164,10 +166,10 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(T), res)
 
     def test_tuple(self):
-        T = Tuple[Tuple[str, str]]
-        store = TSTypeStore(export_all=True)
+        G = Tuple[Tuple[str, str]]
+        store = TSTypeStore(export_all=False, raise_on_error=True)
         res = '[[string, string]]'
-        self.assertEqual(store.get_repr(T), res)
+        self.assertEqual(store.get_repr(G), res)
 
     def test_named_tuple(self):
         store = TSTypeStore()
@@ -179,7 +181,7 @@ class Test(unittest.TestCase):
     def test_inline_dataclass(self):
         a = Type(a=Optional[str], b=Optional[Union[int, str]], c=int)
         store = TSTypeStore()
-        res = '{ \ta?: string, \tb?: number /*int*/ | string, \tc: number /*int*/ }'
+        res = '{ a?: string, b?: number /*int*/ | string, c: number /*int*/ }'
         self.assertEqual(store.get_repr(a), res)
 
     def test_not_inline_dataclass(self):
@@ -220,12 +222,6 @@ class Test(unittest.TestCase):
         store = TSTypeStore()
         res = '{ [key: string]: V }'
         self.assertEqual(store.get_repr(u), res)
-
-    def test_plain_dict_type(self):
-        t = {'deb': int}
-        res = '{ deb: number /*int*/ }'
-        store = TSTypeStore()
-        self.assertEqual(store.get_repr(t), res)
 
     def test_store(self):
         store = TSTypeStore()
@@ -278,6 +274,7 @@ class Test(unittest.TestCase):
 
         with self.assertRaises(MissingHandler):
             print(store.get_repr(tuple()))
+        store.add_basic_handler(TupleHandler)
 
     def test_add_basic(self):
         store = TSTypeStore(raise_on_error=True)
@@ -293,4 +290,17 @@ class Test(unittest.TestCase):
     def test_export_one(self):
         store = TSTypeStore()
         a = Named(Union[int, str])
-        self.assertEqual(store.get_full_repr(a, exported=True), 'export type a = number /*int*/ | string;')
+        self.assertEqual(store.get_full_repr(a, exported=True),
+                         'export type a = number /*int*/ | string;')
+
+    def test_named_mapping(self):
+        store = TSTypeStore()
+        a = Named(Dict[int, str])
+        self.assertEqual(store.get_full_repr(a),
+                         'type a = { [key: number /*int*/]: string }')
+
+    def test_named_list(self):
+        store = TSTypeStore()
+        a = Named(List[int])
+        self.assertEqual(store.get_full_repr(a),
+                         'type a = (number /*int*/)[]')
