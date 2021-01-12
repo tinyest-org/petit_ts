@@ -1,5 +1,7 @@
+from petit_ts.ts_store import TSTypeStore
 from typing import List, Tuple, Optional, Dict, Any, get_type_hints
-from petit_ts import ClassHandler, TSTypeStore
+from petit_type_system import ClassHandler
+from petit_ts import TSTypeStore
 from pydantic import BaseModel
 
 

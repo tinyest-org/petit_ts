@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import (Any, AnyStr, Dict, Generic, List, Literal, Optional, Set,
                     Tuple, TypeVar, Union, get_origin, get_type_hints)
 
-from petit_ts.handlers import TupleHandler
+from petit_ts.handlers import TSTupleHandler
 from petit_type_system.named_types import get_extended_name
 from petit_type_system.inline_type import Type
 
@@ -270,17 +270,17 @@ class Test(unittest.TestCase):
 
     def test_no_handler_not_class(self):
         store = TSTypeStore(raise_on_error=True)
-        store.basic_handlers.remove(TupleHandler)
+        store.basic_handlers.remove(TSTupleHandler)
 
         with self.assertRaises(MissingHandler):
             print(store.get_repr(tuple()))
-        store.add_basic_handler(TupleHandler)
+        store.add_basic_handler(TSTupleHandler)
 
     def test_add_basic(self):
         store = TSTypeStore(raise_on_error=True)
         # nomminally a handler is never removed
-        store.basic_handlers.remove(TupleHandler)
-        store.add_basic_handler(TupleHandler)
+        store.basic_handlers.remove(TSTupleHandler)
+        store.add_basic_handler(TSTupleHandler)
         self.assertEqual(store.get_repr(Tuple[str, str]), '[string, string]')
 
     def test_patch(self):

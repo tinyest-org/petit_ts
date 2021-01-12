@@ -5,7 +5,7 @@ from enum import Enum
 from typing import (TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple,
                     Union, get_type_hints)
 
-from petit_type_system import BasicHandler, ClassHandler
+from petit_type_system.default_handlers import TupleHandler, UnionHandler, LiteralHandler, EnumHandler, DataclassHandler, ArrayHandler, MappingHandler
 from petit_type_system import StructHandler as BaseStructHandler
 from petit_type_system.const import INLINE_TOKEN, NoneType
 from petit_type_system.exceptions import InvalidTypeArgument
@@ -17,11 +17,7 @@ if TYPE_CHECKING:
     from petit_type_system import TypeStore  # pragma: no cover
 
 
-class UnionHandler(BasicHandler):
-    @staticmethod
-    def should_handle(cls, store, origin, args) -> bool:
-        return origin in (NamedUnion, Union)
-
+class TSUnionHandler(UnionHandler):
     @staticmethod
     def build(cls: Union[Any], store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         # Union[Any] because Union is like Never
@@ -34,11 +30,7 @@ class UnionHandler(BasicHandler):
             return name, f'type {name} = '+' | '.join(store.get_repr(arg) for arg in args) + ';'
 
 
-class LiteralHandler(BasicHandler):
-    @staticmethod
-    def should_handle(cls, store, origin, args) -> bool:
-        return origin in (Literal, NamedLiteral)
-
+class TSLiteralHandler(LiteralHandler):
     @staticmethod
     def build(cls: Literal, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         name = get_extended_name(cls)
@@ -60,14 +52,10 @@ class LiteralHandler(BasicHandler):
             return name, f'type {name} = {res};'
 
 
-class EnumHandler(ClassHandler[Enum]):
+class TSEnumHandler(EnumHandler):
     @staticmethod
     def is_mapping() -> bool:
         return False
-
-    @staticmethod
-    def should_handle(cls: type, store, origin, args) -> bool:
-        return issubclass(cls, Enum)
 
     @staticmethod
     def build(cls: Enum, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
@@ -76,7 +64,7 @@ class EnumHandler(ClassHandler[Enum]):
         for i in cls:
             if isinstance(i.value, str):
                 s.append(f'\t{i.name} = "{i.value}",')
-            elif isinstance(i.value, int):
+            elif isinstance(i.value, (int, float)):
                 s.append(f'\t{i.name} = {i.value},')
             else:
                 raise InvalidTypeArgument(
@@ -86,15 +74,10 @@ class EnumHandler(ClassHandler[Enum]):
         return name, res
 
 
-class DataclassHandler(ClassHandler):
+class TSDataclassHandler(DataclassHandler):
     @staticmethod
     def is_mapping() -> bool:
         return True
-
-    @staticmethod
-    def should_handle(cls: type, store, origin, args) -> bool:
-        return is_dataclass(cls)
-
     @staticmethod
     def build(cls: type, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], Dict[str, Any]]:
         name = None if cls.__name__.startswith(INLINE_TOKEN) else cls.__name__
@@ -102,11 +85,7 @@ class DataclassHandler(ClassHandler):
         return name, fields
 
 
-class TupleHandler(BasicHandler):
-    @staticmethod
-    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
-        return origin is tuple
-
+class TSTupleHandler(TupleHandler):
     @staticmethod
     def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
@@ -118,7 +97,7 @@ class TupleHandler(BasicHandler):
             return name, f'type {name} = {built}'
 
 
-class ArrayHandler(BasicHandler):
+class TSArrayHandler(ArrayHandler):
     @staticmethod
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin == list and len(args) == 1
@@ -134,7 +113,7 @@ class ArrayHandler(BasicHandler):
             return name, f'type {name} = {built}'
 
 
-class MappingHandler(BasicHandler):
+class TSMappingHandler(MappingHandler):
     @staticmethod
     def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
         return origin == dict and len(args) == 2
@@ -150,7 +129,7 @@ class MappingHandler(BasicHandler):
             return name, f'type {name} = {built}'
 
 
-class StructHandler(BaseStructHandler):
+class TSStructHandler(BaseStructHandler):
     @staticmethod
     def make_inline_struct(cls: Any, fields: Dict[str, Any], store: TypeStore) -> str:
         s = []
