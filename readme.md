@@ -2,7 +2,7 @@
 ![Codecov](https://img.shields.io/codecov/c/gh/plawn/petit_ts)
 [![GitHub license](https://img.shields.io/github/license/Plawn/petit_ts)](https://github.com/Plawn/petit_ts/blob/main/LICENSE.TXT)
 
-A Library to easly convert your python types to typescript types.
+A Library to easely convert your python types to typescript types.
 
 It's a part of the **petite_stack** (not released yet, as not mature enough).
 
@@ -39,7 +39,7 @@ print(res)
 # >>> "CreateUserDto"
 
 # Here you notice that we have the name instead of the body, so that you can use it
-# in another function easly
+# in another function easely
 
 # here we need to do this in order, to get all the required deps into our ts file
 not_inlined = store.get_all_not_inlined()
