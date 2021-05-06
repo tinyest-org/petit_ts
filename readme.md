@@ -78,6 +78,21 @@ with open('res.ts', 'w') as f :
     f.write(final)
 ```
 
+```python
+store = TSTypeStore(export_all=True)
+T = TypeVar('T')
+
+@dataclass
+class jeb(Generic[T]):
+    p: T
+
+impl = Named(List[jeb[int]])
+
+store.get_full_repr(impl) # >> 'export type impl = (jeb<number /*int*/>)[];'
+# the jeb type is automatically added to the store and can be retrived with:
+# store.get_all_not_inlined()
+```
+
 
 ### Supported types:
 

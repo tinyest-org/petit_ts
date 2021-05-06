@@ -117,6 +117,19 @@ class Test(unittest.TestCase):
         res = 'export type test<T> = {\n\ta?: number /*int*/ | string;\n\tb: (jeb<T>)[];\n\tc: T;\n};'
         self.assertEqual(store.get_full_repr(test), res)
 
+    def test_generic(self):
+        store = TSTypeStore(export_all=True)
+        T = TypeVar('T')
+
+        @dataclass
+        class jeb(Generic[T]):
+            p: T
+
+        impl = Named(List[jeb[int]])
+
+        res = 'export type impl = (jeb<number /*int*/>)[];'
+        self.assertEqual(store.get_full_repr(impl), res)
+
     def test_valid_enum(self):
         class e(enum.Enum):
             A = 'A'
@@ -304,4 +317,4 @@ class Test(unittest.TestCase):
         store = TSTypeStore()
         a = Named(List[int])
         self.assertEqual(store.get_full_repr(a),
-                         'type a = (number /*int*/)[]')
+                         'type a = (number /*int*/)[];')

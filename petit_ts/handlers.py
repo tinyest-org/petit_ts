@@ -102,7 +102,7 @@ class TSArrayHandler(ArrayHandler):
         if (name := get_extended_name(cls)) is None:
             return None, built
         else:
-            return name, f'type {name} = {built}'
+            return name, f'type {name} = {built};'
 
 
 class TSMappingHandler(MappingHandler):
