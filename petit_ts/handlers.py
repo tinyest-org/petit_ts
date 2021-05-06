@@ -18,21 +18,20 @@ if TYPE_CHECKING:
 
 
 class TSUnionHandler(UnionHandler):
-    @staticmethod
-    def build(cls: Union[Any], store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
+
+    def build(self, cls: Union[Any], origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
             if is_mapping_key:
-                return None, f' | '.join(store.get_repr(arg) for arg in args if arg is not NoneType)
+                return None, f' | '.join(self.store.get_repr(arg) for arg in args if arg is not NoneType)
             else:
-                return None, f' | '.join(store.get_repr(arg) for arg in args)
+                return None, f' | '.join(self.store.get_repr(arg) for arg in args)
         else:
-            return name, f'type {name} = '+' | '.join(store.get_repr(arg) for arg in args) + ';'
+            return name, f'type {name} = '+' | '.join(self.store.get_repr(arg) for arg in args) + ';'
 
 
 class TSLiteralHandler(LiteralHandler):
-    @staticmethod
-    def build(cls: Literal, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
+    def build(self, cls: Literal, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         name = get_extended_name(cls)
         is_inline = name is None
         s = []
@@ -53,12 +52,10 @@ class TSLiteralHandler(LiteralHandler):
 
 
 class TSEnumHandler(EnumHandler):
-    @staticmethod
-    def is_mapping() -> bool:
+    def is_mapping(self) -> bool:
         return False
 
-    @staticmethod
-    def build(cls: Enum, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
+    def build(self, cls: Enum, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         s = []
         name = cls.__name__
         for i in cls:
@@ -75,21 +72,18 @@ class TSEnumHandler(EnumHandler):
 
 
 class TSDataclassHandler(DataclassHandler):
-    @staticmethod
-    def is_mapping() -> bool:
+    def is_mapping(self) -> bool:
         return True
-    @staticmethod
-    def build(cls: type, store, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], Dict[str, Any]]:
+    def build(self, cls: type, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], Dict[str, Any]]:
         name = None if cls.__name__.startswith(INLINE_TOKEN) else cls.__name__
         fields = get_type_hints(cls)
         return name, fields
 
 
 class TSTupleHandler(TupleHandler):
-    @staticmethod
-    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
+    def build(self, cls: Any, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
-        built = '[' + f', '.join(store.get_repr(arg)
+        built = '[' + f', '.join(self.store.get_repr(arg)
                                  for arg in args if arg is not NoneType) + ']'
         if (name := get_extended_name(cls)) is None:
             return None, built
@@ -98,15 +92,13 @@ class TSTupleHandler(TupleHandler):
 
 
 class TSArrayHandler(ArrayHandler):
-    @staticmethod
-    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+    def should_handle(self, cls: Any, origin: Optional[type], args: List[Any]) -> bool:
         return origin == list and len(args) == 1
 
-    @staticmethod
-    def build(cls: List, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+    def build(self, cls: List, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
         type_ = args[0]
         # can't have optional here
-        built = f'({store.get_repr(type_)})[]'
+        built = f'({self.store.get_repr(type_)})[]'
         if (name := get_extended_name(cls)) is None:
             return None, built
         else:
@@ -114,15 +106,13 @@ class TSArrayHandler(ArrayHandler):
 
 
 class TSMappingHandler(MappingHandler):
-    @staticmethod
-    def should_handle(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any]) -> bool:
+    def should_handle(self, cls: Any, origin: Optional[type], args: List[Any]) -> bool:
         return origin == dict and len(args) == 2
 
-    @staticmethod
-    def build(cls: Any, store: TypeStore, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
+    def build(self, cls: Any, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
         key_type, value_type = args
         # can't have optional here
-        built = f'{{ [key: {store.get_repr(key_type)}]: {store.get_repr(value_type)} }}'
+        built = f'{{ [key: {self.store.get_repr(key_type)}]: {self.store.get_repr(value_type)} }}'
         if (name := get_extended_name(cls)) is None:
             return name,  built
         else:
@@ -130,8 +120,8 @@ class TSMappingHandler(MappingHandler):
 
 
 class TSStructHandler(BaseStructHandler):
-    @staticmethod
-    def make_inline_struct(cls: Any, fields: Dict[str, Any], store: TypeStore) -> str:
+    def make_inline_struct(self, cls: Any, fields: Dict[str, Any]) -> str:
+        store = self.store
         s = []
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
@@ -151,8 +141,8 @@ class TSStructHandler(BaseStructHandler):
                     f'{key}: {store.get_repr(type_, is_mapping_key=True)}')
         return '{ ' + ', '.join(s) + ' }'
 
-    @staticmethod
-    def make_struct(cls: Any, name: str, fields: Dict[str, Any], store: TypeStore) -> str:
+    def make_struct(self, cls: Any, name: str, fields: Dict[str, Any]) -> str:
+        store = self.store
         is_generic_, names = is_generic(cls)
         s: List[str] = []
         if is_generic_:

@@ -142,16 +142,13 @@ class Test(unittest.TestCase):
         patch_get_origin_for_Union()
 
         class BaseModelHandler(ClassHandler):
-            @staticmethod
-            def is_mapping() -> bool:
+            def is_mapping(self) -> bool:
                 return True
 
-            @staticmethod
-            def should_handle(cls, store, origin, args) -> bool:
+            def should_handle(self, cls, origin, args) -> bool:
                 return issubclass(cls, BaseModel)
 
-            @staticmethod
-            def build(cls: BaseModel, store, origin, args, is_mapping_key) -> Tuple[Optional[str], Dict[str, Any]]:
+            def build(self, cls: BaseModel, origin, args, is_mapping_key) -> Tuple[Optional[str], Dict[str, Any]]:
                 name = cls.__name__
                 fields = get_type_hints(cls)
                 return name, fields
@@ -270,7 +267,9 @@ class Test(unittest.TestCase):
 
     def test_no_handler_not_class(self):
         store = TSTypeStore(raise_on_error=True)
-        store.basic_handlers.remove(TSTupleHandler)
+        store.basic_handlers = list(
+            h for h in store.basic_handlers if not isinstance(h, TSTupleHandler)
+        )
 
         with self.assertRaises(MissingHandler):
             print(store.get_repr(tuple()))
@@ -279,7 +278,9 @@ class Test(unittest.TestCase):
     def test_add_basic(self):
         store = TSTypeStore(raise_on_error=True)
         # nomminally a handler is never removed
-        store.basic_handlers.remove(TSTupleHandler)
+        store.basic_handlers = list(
+            h for h in store.basic_handlers if not isinstance(h, TSTupleHandler)
+        )
         store.add_basic_handler(TSTupleHandler)
         self.assertEqual(store.get_repr(Tuple[str, str]), '[string, string]')
 
