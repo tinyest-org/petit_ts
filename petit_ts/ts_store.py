@@ -1,6 +1,6 @@
 from typing import Any, List, Tuple, Type
 
-from petit_type_system.base_handler import BasicHandler, ClassHandler
+from petit_type_system import BasicHandler, ClassHandler
 from petit_type_system.const import NoneType, undefined, null
 from .handlers import (TSArrayHandler, TSDataclassHandler, TSEnumHandler,
                        TSLiteralHandler, TSMappingHandler, TSTupleHandler,

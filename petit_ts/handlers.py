@@ -13,8 +13,10 @@ from petit_type_system.named_types import (NamedLiteral, NamedUnion,
                                            get_extended_name)
 from petit_type_system.utils import is_generic, is_optional
 
+if TYPE_CHECKING:
+    from .ts_store import TSTypeStore
 
-class TSUnionHandler(UnionHandler):
+class TSUnionHandler(UnionHandler['TSTypeStore']):
     def build(self, cls: Union[Any], origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
@@ -26,7 +28,7 @@ class TSUnionHandler(UnionHandler):
             return name, f'type {name} = '+' | '.join(self.store.get_repr(arg) for arg in args) + ';'
 
 
-class TSLiteralHandler(LiteralHandler):
+class TSLiteralHandler(LiteralHandler['TSTypeStore']):
     def build(self, cls: Literal, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         name = get_extended_name(cls)
         is_inline = name is None
@@ -47,7 +49,7 @@ class TSLiteralHandler(LiteralHandler):
             return name, f'type {name} = {res};'
 
 
-class TSEnumHandler(EnumHandler):
+class TSEnumHandler(EnumHandler['TSTypeStore']):
     def is_mapping(self) -> bool:
         return False
 
@@ -67,7 +69,7 @@ class TSEnumHandler(EnumHandler):
         return name, res
 
 
-class TSDataclassHandler(DataclassHandler):
+class TSDataclassHandler(DataclassHandler['TSTypeStore']):
     def is_mapping(self) -> bool:
         return True
 
@@ -77,7 +79,7 @@ class TSDataclassHandler(DataclassHandler):
         return name, fields
 
 
-class TSTupleHandler(TupleHandler):
+class TSTupleHandler(TupleHandler['TSTypeStore']):
     def build(self, cls: Any, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], Union[str, Dict[str, Any]]]:
         # Union[Any] because Union is like Never
         built = '[' + f', '.join(self.store.get_repr(arg)
@@ -88,7 +90,7 @@ class TSTupleHandler(TupleHandler):
             return name, f'type {name} = {built}'
 
 
-class TSArrayHandler(ArrayHandler):
+class TSArrayHandler(ArrayHandler['TSTypeStore']):
     def should_handle(self, cls: Any, origin: Optional[type], args: List[Any]) -> bool:
         return origin == list and len(args) == 1
 
@@ -102,7 +104,7 @@ class TSArrayHandler(ArrayHandler):
             return name, f'type {name} = {built};'
 
 
-class TSMappingHandler(MappingHandler):
+class TSMappingHandler(MappingHandler['TSTypeStore']):
     def should_handle(self, cls: Any, origin: Optional[type], args: List[Any]) -> bool:
         return origin == dict and len(args) == 2
 
@@ -117,7 +119,7 @@ class TSMappingHandler(MappingHandler):
             return name, f'{type_token} {name} = {built}'
 
 
-class TSStructHandler(BaseStructHandler):
+class TSStructHandler(BaseStructHandler['TSTypeStore']):
     def make_inline_struct(self, cls: Any, fields: Dict[str, Any]) -> str:
         store = self.store
         s = []
