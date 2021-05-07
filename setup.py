@@ -5,7 +5,7 @@ with open('readme.md', 'r') as f :
 
 setup(
     name='petit_ts',
-    version='0.2.0',
+    version='0.2.1',
     description='Convert your python types to typescript',
     packages=['petit_ts'],
     url='https://github.com/Plawn/petit_ts',
