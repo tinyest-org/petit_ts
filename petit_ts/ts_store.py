@@ -8,8 +8,6 @@ from .handlers import (TSArrayHandler, TSDataclassHandler, TSEnumHandler,
 from petit_type_system.store import create_store_class
 
 
-
-
 ts_raw_default_types: List[Tuple[Any, str]] = [
     (bool, "boolean"),
     (None, "void"),
@@ -52,10 +50,16 @@ ts_basic_handlers: List[Type[BasicHandler]] = [
     TSTupleHandler,
 ]
 
-TSTypeStore = create_store_class(
+TSTypeStore_ = create_store_class(
     ts_export_token,
     struct_handler=TSStructHandler,
     basic_handlers=ts_basic_handlers,
     class_handlers=ts_class_handlers,
     basic_types=ts_raw_default_types,
 )
+
+
+class TSTypeStore(TSTypeStore_):
+    def __init__(self, export_all: bool = False, raise_on_error: bool = False, as_interface: bool = False):
+        super().__init__(export_all=export_all, raise_on_error=raise_on_error)
+        self.as_interface = as_interface

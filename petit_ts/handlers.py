@@ -13,12 +13,8 @@ from petit_type_system.named_types import (NamedLiteral, NamedUnion,
                                            get_extended_name)
 from petit_type_system.utils import is_generic, is_optional
 
-if TYPE_CHECKING:
-    from petit_type_system import TypeStore  # pragma: no cover
-
 
 class TSUnionHandler(UnionHandler):
-
     def build(self, cls: Union[Any], origin, args, is_mapping_key: bool) -> Tuple[Optional[str], str]:
         # Union[Any] because Union is like Never
         if (name := get_extended_name(cls)) is None:
@@ -74,6 +70,7 @@ class TSEnumHandler(EnumHandler):
 class TSDataclassHandler(DataclassHandler):
     def is_mapping(self) -> bool:
         return True
+
     def build(self, cls: type, origin, args, is_mapping_key: bool) -> Tuple[Optional[str], Dict[str, Any]]:
         name = None if cls.__name__.startswith(INLINE_TOKEN) else cls.__name__
         fields = get_type_hints(cls)
@@ -112,11 +109,12 @@ class TSMappingHandler(MappingHandler):
     def build(self, cls: Any, origin: Optional[type], args: List[Any], is_mapping_key: bool) -> Tuple[Optional[str], str]:
         key_type, value_type = args
         # can't have optional here
+        type_token = "interface" if self.store.as_interface else "type"
         built = f'{{ [key: {self.store.get_repr(key_type)}]: {self.store.get_repr(value_type)} }}'
         if (name := get_extended_name(cls)) is None:
             return name,  built
         else:
-            return name, f'type {name} = {built}'
+            return name, f'{type_token} {name} = {built}'
 
 
 class TSStructHandler(BaseStructHandler):
@@ -144,13 +142,14 @@ class TSStructHandler(BaseStructHandler):
     def make_struct(self, cls: Any, name: str, fields: Dict[str, Any]) -> str:
         store = self.store
         is_generic_, names = is_generic(cls)
+        type_token = "interface" if store.as_interface else "type"
         s: List[str] = []
         if is_generic_:
             s.append(
-                f'type {name}<{", ".join(store.get_repr(n) for n in names)}> = {{'
+                f'{type_token} {name}<{", ".join(store.get_repr(n) for n in names)}> = {{'
             )
         else:
-            s.append(f'type {name} = {{')
+            s.append(f'{type_token} {name} = {{')
         for key, type_ in fields.items():
             optional, args = is_optional(type_)
             if optional:

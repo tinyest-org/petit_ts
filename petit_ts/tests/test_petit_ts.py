@@ -204,6 +204,17 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(a), res)
         self.assertEqual(store.get_repr(a), 'a')
 
+
+    def test_interface_dataclass(self):
+        @dataclass
+        class a:
+            a: Optional[str]
+            b: int
+        store = TSTypeStore(as_interface=True)
+        res = 'interface a = {\n\ta?: string;\n\tb: number /*int*/;\n};'
+        self.assertEqual(store.get_full_repr(a), res)
+        self.assertEqual(store.get_repr(a), 'a')
+
     def test_basic_array(self):
         a = List[int]
         store = TSTypeStore()
