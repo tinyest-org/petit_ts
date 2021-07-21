@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import is_dataclass
 from enum import Enum
 from typing import (TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple,
                     Union, get_type_hints)
 
-from petit_type_system.default_handlers import TupleHandler, UnionHandler, LiteralHandler, EnumHandler, DataclassHandler, ArrayHandler, MappingHandler
 from petit_type_system import StructHandler as BaseStructHandler
 from petit_type_system.const import INLINE_TOKEN, NoneType
+from petit_type_system.default_handlers import (ArrayHandler, DataclassHandler,
+                                                EnumHandler, LiteralHandler,
+                                                MappingHandler, TupleHandler,
+                                                UnionHandler)
 from petit_type_system.exceptions import InvalidTypeArgument
-from petit_type_system.named_types import (NamedLiteral, NamedUnion,
-                                           get_extended_name)
+from petit_type_system.named_types import get_extended_name
 from petit_type_system.utils import is_generic, is_optional
 
 if TYPE_CHECKING:

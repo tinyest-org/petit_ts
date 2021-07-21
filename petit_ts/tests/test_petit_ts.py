@@ -9,7 +9,7 @@ from typing import (Any, AnyStr, Dict, Generic, List, Literal, Optional, Set,
 
 from petit_ts.handlers import TSTupleHandler
 from petit_type_system.named_types import get_extended_name
-from petit_type_system.inline_type import Type
+from petit_type_system.inline_type import Struct
 
 from petit_type_system import ClassHandler, Named, patch_get_origin_for_Union
 from petit_type_system.exceptions import InvalidTypeArgument, MissingHandler
@@ -189,7 +189,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_full_repr(D), res)
 
     def test_inline_dataclass(self):
-        a = Type(a=Optional[str], b=Optional[Union[int, str]], c=int)
+        a = Struct(a=Optional[str], b=Optional[Union[int, str]], c=int)
         store = TSTypeStore()
         res = '{ a?: string, b?: number /*int*/ | string, c: number /*int*/ }'
         self.assertEqual(store.get_repr(a), res)

@@ -1,1 +1,1 @@
-petit_type_system>=0.1.5
+petit_type_system>=0.3.0
